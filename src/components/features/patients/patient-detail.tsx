@@ -16,15 +16,6 @@ import { MedicineSearch } from '@/components/ui/medicine-search'
 import { ArrowLeft, Plus, Trash2, Copy, History, FileText, Save } from 'lucide-react'
 import { format } from 'date-fns'
 
-interface Medicine {
-  id: string
-  name: string
-  category: string
-  unit: string
-  stockQty: number
-  price: number
-}
-
 interface PrescriptionItemData {
   medicineId: string
   dosage: string
@@ -68,10 +59,9 @@ interface Patient {
 
 interface PatientDetailProps {
   patient: Patient
-  medicines: Medicine[]
 }
 
-export function PatientDetail({ patient, medicines }: PatientDetailProps) {
+export function PatientDetail({ patient }: PatientDetailProps) {
   const router = useRouter()
   const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new')
@@ -149,7 +139,7 @@ export function PatientDetail({ patient, medicines }: PatientDetailProps) {
     if (record.prescription?.items) {
       setPrescriptionItems(
         record.prescription.items.map((item) => ({
-          medicineId: medicines.find((m) => m.name === item.medicine.name)?.id || '',
+          medicineId: '',
           dosage: item.dosage,
           quantity: item.quantity,
           notes: '',
@@ -361,7 +351,6 @@ export function PatientDetail({ patient, medicines }: PatientDetailProps) {
                   </p>
                 ) : (
                   prescriptionItems.map((item, index) => {
-                    const med = medicines.find((m) => m.id === item.medicineId)
                     return (
                       <div key={index} className="border rounded-lg p-3 space-y-2">
                         <div className="flex items-center justify-between">
@@ -379,7 +368,6 @@ export function PatientDetail({ patient, medicines }: PatientDetailProps) {
                           </Button>
                         </div>
                         <MedicineSearch
-                          medicines={medicines}
                           value={item.medicineId}
                           onChange={(id) => updatePrescriptionItem(index, 'medicineId', id)}
                           disabled={isSaving}
@@ -401,11 +389,6 @@ export function PatientDetail({ patient, medicines }: PatientDetailProps) {
                             className="w-20"
                             disabled={isSaving}
                           />
-                          {med && (
-                            <span className="text-xs text-muted-foreground self-center">
-                              {med.unit} · Rp {med.price.toLocaleString()}
-                            </span>
-                          )}
                         </div>
                       </div>
                     )

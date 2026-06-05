@@ -3,24 +3,25 @@
 import * as React from 'react'
 import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { searchMedicines } from '@/server/actions/medicines'
 
 interface MedicineSearchProps {
-  medicines: Array<{
-    id: string
-    name: string
-    category: string
-    unit: string
-    stockQty: number
-    price: number
-  }>
   value: string
   onChange: (medicineId: string) => void
   disabled?: boolean
   placeholder?: string
 }
 
+interface MedicineResult {
+  id: string
+  name: string
+  category: string
+  unit: string
+  stockQty: number
+  price: number
+}
+
 export function MedicineSearch({
-  medicines,
   value,
   onChange,
   disabled,
@@ -29,17 +30,56 @@ export function MedicineSearch({
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState('')
   const [activeIndex, setActiveIndex] = React.useState(-1)
+  const [results, setResults] = React.useState<MedicineResult[]>([])
+  const [loading, setLoading] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const listRef = React.useRef<HTMLDivElement>(null)
   const itemRefs = React.useRef<(HTMLDivElement | null)[]>([])
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const selectedMedicine = medicines.find((m) => m.id === value)
+  const [selectedName, setSelectedName] = React.useState('')
 
-  const filtered = React.useMemo(() => {
-    const q = query.toLowerCase().trim()
-    if (!q) return medicines
-    return medicines.filter((m) => m.name.toLowerCase().includes(q))
-  }, [medicines, query])
+  // Fetch medicine by ID when value changes (to show selected name)
+  React.useEffect(() => {
+    if (!value) {
+      setSelectedName('')
+      return
+    }
+    // If we already have it in results, use that
+    const found = results.find((m) => m.id === value)
+    if (found) {
+      setSelectedName(found.name)
+    }
+  }, [value, results])
+
+  const doSearch = React.useCallback(async (q: string) => {
+    if (!q || q.length < 1) {
+      setResults([])
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await searchMedicines(q)
+      if ('data' in res) {
+        setResults(res.data ?? [])
+      }
+    } catch {
+      setResults([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      doSearch(query)
+    }, 300)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [query, doSearch])
 
   // Scroll active item into view
   React.useEffect(() => {
@@ -48,9 +88,11 @@ export function MedicineSearch({
     }
   }, [activeIndex])
 
-  function selectMedicine(id: string) {
-    onChange(id)
+  function selectMedicine(med: MedicineResult) {
+    onChange(med.id)
+    setSelectedName(med.name)
     setQuery('')
+    setResults([])
     setOpen(false)
     setActiveIndex(-1)
     inputRef.current?.blur()
@@ -69,18 +111,18 @@ export function MedicineSearch({
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
-        setActiveIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : 0))
+        setActiveIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0))
         break
       case 'ArrowUp':
         e.preventDefault()
-        setActiveIndex((prev) => (prev > 0 ? prev - 1 : filtered.length - 1))
+        setActiveIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1))
         break
       case 'Enter':
         e.preventDefault()
-        if (activeIndex >= 0 && activeIndex < filtered.length) {
-          const med = filtered[activeIndex]
+        if (activeIndex >= 0 && activeIndex < results.length) {
+          const med = results[activeIndex]
           if (med.stockQty > 0) {
-            selectMedicine(med.id)
+            selectMedicine(med)
           }
         }
         break
@@ -110,7 +152,7 @@ export function MedicineSearch({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const displayText = query || (selectedMedicine ? selectedMedicine.name : '')
+  const displayText = query || selectedName
 
   return (
     <div className="relative w-full">
@@ -120,7 +162,7 @@ export function MedicineSearch({
           ref={inputRef}
           type="text"
           value={displayText}
-          placeholder={selectedMedicine ? selectedMedicine.name : placeholder}
+          placeholder={selectedName || placeholder}
           disabled={disabled}
           className={cn(
             'flex h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-3 py-1 text-sm shadow-sm',
@@ -133,6 +175,7 @@ export function MedicineSearch({
           }}
           onChange={(e) => {
             setQuery(e.target.value)
+            setSelectedName('')
             setActiveIndex(-1)
             if (!open) setOpen(true)
           }}
@@ -140,7 +183,17 @@ export function MedicineSearch({
         />
       </div>
 
-      {open && filtered.length > 0 && (
+      {open && loading && query && (
+        <div
+          className={cn(
+            'absolute z-50 mt-1 w-full rounded-md border bg-popover p-3 text-sm text-muted-foreground shadow-md'
+          )}
+        >
+          Searching...
+        </div>
+      )}
+
+      {open && !loading && results.length > 0 && (
         <div
           ref={listRef}
           className={cn(
@@ -148,7 +201,7 @@ export function MedicineSearch({
           )}
           role="listbox"
         >
-          {filtered.map((med, index) => {
+          {results.map((med, index) => {
             const isSelected = med.id === value
             const isDisabled = med.stockQty <= 0
             const isActive = index === activeIndex
@@ -169,7 +222,7 @@ export function MedicineSearch({
                 )}
                 onMouseDown={(e) => {
                   e.preventDefault()
-                  if (!isDisabled) selectMedicine(med.id)
+                  if (!isDisabled) selectMedicine(med)
                 }}
                 onMouseEnter={() => {
                   if (!isDisabled) setActiveIndex(index)
@@ -188,7 +241,7 @@ export function MedicineSearch({
         </div>
       )}
 
-      {open && query && filtered.length === 0 && (
+      {open && query && !loading && results.length === 0 && (
         <div
           className={cn(
             'absolute z-50 mt-1 w-full rounded-md border bg-popover p-3 text-sm text-muted-foreground shadow-md'

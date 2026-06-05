@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -75,6 +75,10 @@ export function InventoryTable({
   const [adjustQty, setAdjustQty] = useState(0)
   const [adjustReason, setAdjustReason] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+
+  useEffect(() => {
+    setMedicines(initialMedicines)
+  }, [initialMedicines])
 
   const isDoctor = session?.user?.role === 'DOCTOR'
 

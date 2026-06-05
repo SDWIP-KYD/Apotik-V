@@ -209,6 +209,35 @@ export async function adjustStock(input: AdjustStockInput) {
   return { data: updated }
 }
 
+export async function searchMedicines(query: string) {
+  const session = await auth()
+  if (!session?.user) {
+    return { error: 'Unauthorized' as const }
+  }
+
+  if (!query || query.length < 1) {
+    return { data: [] }
+  }
+
+  const medicines = await prisma.medicine.findMany({
+    where: {
+      name: { contains: query, mode: 'insensitive' },
+    },
+    take: 20,
+    orderBy: { name: 'asc' },
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      unit: true,
+      stockQty: true,
+      price: true,
+    },
+  })
+
+  return { data: medicines }
+}
+
 export async function getLowStockMedicines() {
   const session = await auth()
   if (!session?.user) {
