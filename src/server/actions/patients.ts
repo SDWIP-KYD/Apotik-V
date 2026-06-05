@@ -58,16 +58,17 @@ export async function getPatients(params?: {
   search?: string
   page?: number
   limit?: number
+  date?: string  // format: 'YYYY-MM-DD'
 }) {
   const session = await auth()
   if (!session?.user) {
     return { error: 'Unauthorized' }
   }
 
-  const { search, page = 1, limit = 10 } = params ?? {}
+  const { search, page = 1, limit = 10, date } = params ?? {}
   const skip = (page - 1) * limit
 
-  const where = search
+  const searchFilter = search
     ? {
         OR: [
           { name: { contains: search, mode: 'insensitive' as const } },
@@ -76,6 +77,20 @@ export async function getPatients(params?: {
         ],
       }
     : {}
+
+  const dateFilter = date
+    ? {
+        createdAt: {
+          gte: new Date(date + 'T00:00:00'),
+          lt: new Date(date + 'T23:59:59'),
+        },
+      }
+    : {}
+
+  const where = {
+    ...searchFilter,
+    ...dateFilter,
+  }
 
   const [patients, total] = await Promise.all([
     prisma.patient.findMany({

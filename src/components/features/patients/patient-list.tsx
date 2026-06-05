@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { deletePatient } from '@/server/actions/patients'
-import { Search, Plus, Edit, Trash2, Eye } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,17 +48,34 @@ interface PatientListProps {
     totalPages: number
   }
   search?: string
+  date?: string
 }
 
-export function PatientList({ initialPatients, pagination, search: initialSearch }: PatientListProps) {
+export function PatientList({ initialPatients, pagination, search: initialSearch, date: initialDate }: PatientListProps) {
   const router = useRouter()
   const { data: session } = useSession()
   const [patients, setPatients] = useState(initialPatients)
   const [search, setSearch] = useState(initialSearch || '')
+  const [dateFilter, setDateFilter] = useState(initialDate || new Date().toISOString().split('T')[0])
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
   const isDoctor = session?.user?.role === 'DOCTOR'
+
+  const today = new Date().toISOString().split('T')[0]
+
+  function changeDate(delta: number) {
+    const d = new Date(dateFilter)
+    d.setDate(d.getDate() + delta)
+    setDateFilter(d.toISOString().split('T')[0])
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    if (dateFilter) params.set('date', dateFilter)
+    router.push(`/patients?${params.toString()}`)
+  }, [dateFilter])
 
   async function handleDelete() {
     if (!deleteId) return
@@ -82,7 +100,10 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    router.push(`/patients?search=${encodeURIComponent(search)}`)
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    if (dateFilter) params.set('date', dateFilter)
+    router.push(`/patients?${params.toString()}`)
   }
 
   function calculateAge(dateOfBirth: string) {
@@ -100,7 +121,7 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Patients</h1>
+          <h1 className="text-3xl font-bold">Patients registered on {format(new Date(dateFilter + 'T00:00:00'), 'dd MMM yyyy')}</h1>
           <p className="text-muted-foreground">
             {pagination.total} patient{pagination.total !== 1 ? 's' : ''} total
           </p>
@@ -126,6 +147,26 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
         <Button type="submit">Search</Button>
       </form>
 
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => changeDate(-1)}>
+          <ChevronLeft className="h-4 w-4" /> Prev Day
+        </Button>
+        <Input
+          type="date"
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          className="w-auto"
+        />
+        <Button variant="outline" size="sm" onClick={() => changeDate(1)}>
+          Next Day <ChevronRight className="h-4 w-4" />
+        </Button>
+        {dateFilter !== today && (
+          <Button variant="ghost" size="sm" onClick={() => setDateFilter(today)}>
+            Today
+          </Button>
+        )}
+      </div>
+
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -139,13 +180,14 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
                 <TableHead>Allergies</TableHead>
                 <TableHead>Records</TableHead>
                 <TableHead>Examined Today</TableHead>
+                <TableHead>Registered</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {patients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
+                  <TableCell colSpan={10} className="text-center py-8">
                     No patients found
                   </TableCell>
                 </TableRow>
@@ -175,6 +217,9 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
                       <Badge className={patient.examinedToday ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
                         {patient.examinedToday ? '✓ Diperiksa' : 'Belum'}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(patient.createdAt), 'dd MMM yyyy, HH:mm:ss')}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -222,7 +267,13 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push(`/patients?page=${pagination.page - 1}&search=${search}`)}
+              onClick={() => {
+                const params = new URLSearchParams()
+                if (search) params.set('search', search)
+                if (dateFilter) params.set('date', dateFilter)
+                params.set('page', String(pagination.page - 1))
+                router.push(`/patients?${params.toString()}`)
+              }}
               disabled={pagination.page <= 1}
             >
               Previous
@@ -230,7 +281,13 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push(`/patients?page=${pagination.page + 1}&search=${search}`)}
+              onClick={() => {
+                const params = new URLSearchParams()
+                if (search) params.set('search', search)
+                if (dateFilter) params.set('date', dateFilter)
+                params.set('page', String(pagination.page + 1))
+                router.push(`/patients?${params.toString()}`)
+              }}
               disabled={pagination.page >= pagination.totalPages}
             >
               Next

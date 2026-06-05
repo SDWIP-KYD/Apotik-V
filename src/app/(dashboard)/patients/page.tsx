@@ -4,13 +4,14 @@ import { PatientList } from '@/components/features/patients/patient-list'
 export default async function PatientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; page?: string }>
+  searchParams: Promise<{ search?: string; page?: string; date?: string }>
 }) {
   const params = await searchParams
   const search = params.search || ''
   const page = Number(params.page) || 1
+  const date = params.date || new Date().toISOString().split('T')[0]
 
-  const result = await getPatients({ search, page, limit: 10 })
+  const result = await getPatients({ search, page, limit: 10, date })
 
   if (result.error) {
     return (
@@ -25,6 +26,7 @@ export default async function PatientsPage({
       initialPatients={result.data as any}
       pagination={result.pagination!}
       search={search}
+      date={date}
     />
   )
 }
