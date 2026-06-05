@@ -103,7 +103,7 @@ export function PrescriptionDetail({ prescription: initialPrescription }: Prescr
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link href="/prescriptions" className="inline-flex items-center justify-center size-8 rounded-lg hover:bg-muted">
               <ArrowLeft className="h-4 w-4" />
@@ -115,7 +115,7 @@ export function PrescriptionDetail({ prescription: initialPrescription }: Prescr
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {isPending && (
             <>
               <Button onClick={() => handleStatusUpdate('PROCESSED')} disabled={isProcessing}>
@@ -133,13 +133,13 @@ export function PrescriptionDetail({ prescription: initialPrescription }: Prescr
           {(prescription.status === 'PENDING' || prescription.status === 'PROCESSED') && (
             <Button onClick={() => handleStatusUpdate('COMPLETED')} disabled={isProcessing}>
               <Check className="mr-2 h-4 w-4" />
-              Complete (Deduct Stock)
+              Complete
             </Button>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Patient Information</CardTitle>

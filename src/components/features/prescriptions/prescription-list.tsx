@@ -170,7 +170,7 @@ export function PrescriptionList({
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -268,7 +268,7 @@ export function PrescriptionList({
           <p className="text-sm text-muted-foreground">
             Page {pagination.page} of {pagination.totalPages}
           </p>
-          <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
