@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  DOCTOR
+  STAFF
+}
+
+enum PrescriptionStatus {
+  PENDING
+  PROCESSED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          Role      @default(STAFF)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  createdPatients Patient[] @relation("CreatedBy")
+  medicalRecords  MedicalRecord[]
+  prescriptions   Prescription[] @relation("CreatedBy")
+  processedBy     Prescription[] @relation("ProcessedBy")
+  auditLogs       AuditLog[]
+}
+
+model Patient {
+  id            String    @id @default(cuid())
+  name          String
+  dateOfBirth   DateTime
+  gender        String
+  phone         String?
+  address       String?
+  allergies     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdById   String
+  createdBy     User      @relation("CreatedBy", fields: [createdById], references: [id])
+
+  // Relations
+  medicalRecords MedicalRecord[]
+  prescriptions  Prescription[]
+}
+
+model MedicalRecord {
+  id            String    @id @default(cuid())
+  patientId     String
+  doctorId      String
+  visitDate     DateTime  @default(now())
+
+  // SOAP Format
+  subjective    String    @db.Text
+  objective     String    @db.Text
+  assessment    String    @db.Text
+  plan          String    @db.Text
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  patient       Patient   @relation(fields: [patientId], references: [id])
+  doctor        User      @relation(fields: [doctorId], references: [id])
+  prescription  Prescription?
+}
+
+model Medicine {
+  id            String    @id @default(cuid())
+  name          String
+  category      String
+  unit          String
+  stockQty      Int       @default(0)
+  minThreshold  Int       @default(10)
+  expiryDate    DateTime
+  batchNumber   String
+  price         Float
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  prescriptionItems PrescriptionItem[]
+}
+
+model Prescription {
+  id            String    @id @default(cuid())
+  recordId      String    @unique
+  patientId     String
+  status        PrescriptionStatus @default(PENDING)
+  notes         String?   @db.Text
+
+  createdById   String
+  processedById String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  record        MedicalRecord @relation(fields: [recordId], references: [id])
+  patient       Patient   @relation(fields: [patientId], references: [id])
+  createdBy     User      @relation("CreatedBy", fields: [createdById], references: [id])
+  processedBy   User?     @relation("ProcessedBy", fields: [processedById], references: [id])
+  items         PrescriptionItem[]
+}
+
+model PrescriptionItem {
+  id            String    @id @default(cuid())
+  prescriptionId String
+  medicineId    String
+  dosage        String
+  quantity      Int
+  notes         String?
+
+  // Relations
+  prescription  Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medicine      Medicine  @relation(fields: [medicineId], references: [id])
+}
+
+model AuditLog {
+  id            String    @id @default(cuid())
+  userId        String
+  action        String
+  entity        String
+  entityId      String
+  oldValues     Json?
+  newValues     Json?
+  timestamp     DateTime  @default(now())
+
+  user          User      @relation(fields: [userId], references: [id])
+}
