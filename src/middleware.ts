@@ -13,7 +13,7 @@ function getSessionFromCookie(request: NextRequest) {
   return { exists: true }
 }
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const session = getSessionFromCookie(request)
   const isLoggedIn = !!session
