@@ -3,6 +3,10 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { hash } from 'bcryptjs'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { config } from 'dotenv'
+import { resolve } from 'path'
+
+config({ path: resolve(__dirname, '..', '.env.local') })
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
@@ -146,7 +150,6 @@ async function main() {
       return {
         name: p.name,
         category,
-        description: p.composition,
         unit: getUnit(category),
         stockQty: 100 + Math.floor(Math.random() * 201),
         minThreshold: 10,
