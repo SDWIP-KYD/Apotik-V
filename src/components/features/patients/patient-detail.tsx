@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { Select } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { createMedicalRecord } from '@/server/actions/medical-records'
+import { MedicineSearch } from '@/components/ui/medicine-search'
 import { ArrowLeft, Plus, Trash2, Copy, History, FileText, Save } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -53,6 +54,8 @@ interface MedicalRecordItem {
 interface Patient {
   id: string
   name: string
+  medicalRecordNumber: string
+  suku?: string | null
   dateOfBirth: string
   gender: string
   phone?: string | null
@@ -206,6 +209,9 @@ export function PatientDetail({ patient, medicines }: PatientDetailProps) {
           </Button>
           <div>
             <h1 className="text-3xl font-bold">{patient.name}</h1>
+            <p className="text-sm text-muted-foreground font-mono">
+              No. RM: {patient.medicalRecordNumber}
+            </p>
             <p className="text-muted-foreground">
               {calculateAge(patient.dateOfBirth)} years old · {patient.gender}
               {patient.allergies && (
@@ -238,6 +244,10 @@ export function PatientDetail({ patient, medicines }: PatientDetailProps) {
             <div>
               <span className="text-muted-foreground">Registered by: </span>
               <span className="font-medium">{patient.createdBy.name}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Suku: </span>
+              <span className="font-medium">{patient.suku || '-'}</span>
             </div>
           </div>
         </CardContent>
@@ -368,19 +378,13 @@ export function PatientDetail({ patient, medicines }: PatientDetailProps) {
                             <Trash2 className="h-3 w-3 text-red-500" />
                           </Button>
                         </div>
-                        <select
+                        <MedicineSearch
+                          medicines={medicines}
                           value={item.medicineId}
-                          onChange={(e) => updatePrescriptionItem(index, 'medicineId', e.target.value)}
-                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          onChange={(id) => updatePrescriptionItem(index, 'medicineId', id)}
                           disabled={isSaving}
-                        >
-                          <option value="">Select medicine...</option>
-                          {medicines.map((med) => (
-                            <option key={med.id} value={med.id} disabled={med.stockQty <= 0}>
-                              {med.name} (stock: {med.stockQty} {med.unit})
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="Search medicine by name..."
+                        />
                         <Input
                           value={item.dosage}
                           onChange={(e) => updatePrescriptionItem(index, 'dosage', e.target.value)}

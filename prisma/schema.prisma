@@ -37,17 +37,19 @@ model User {
 }
 
 model Patient {
-  id            String    @id @default(cuid())
-  name          String
-  dateOfBirth   DateTime
-  gender        String
-  phone         String?
-  address       String?
-  allergies     String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  createdById   String
-  createdBy     User      @relation("CreatedBy", fields: [createdById], references: [id])
+  id                    String    @id @default(cuid())
+  medicalRecordNumber   String    @unique
+  name                  String
+  dateOfBirth           DateTime
+  gender                String
+  suku                  String?
+  phone                 String?
+  address               String?
+  allergies             String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  createdById           String
+  createdBy             User      @relation("CreatedBy", fields: [createdById], references: [id])
 
   // Relations
   medicalRecords MedicalRecord[]

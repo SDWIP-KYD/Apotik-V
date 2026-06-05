@@ -6,9 +6,11 @@ export const loginSchema = z.object({
 })
 
 export const patientSchema = z.object({
+  medicalRecordNumber: z.string().optional(),
   name: z.string().min(1, 'Name is required'),
   dateOfBirth: z.coerce.date({ message: 'Invalid date' }),
   gender: z.enum(['MALE', 'FEMALE']),
+  suku: z.string().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
   allergies: z.string().optional(),

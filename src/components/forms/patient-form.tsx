@@ -16,9 +16,11 @@ import { useState } from 'react'
 interface PatientFormProps {
   initialData?: {
     id: string
+    medicalRecordNumber?: string
     name: string
     dateOfBirth: string
     gender: string
+    suku?: string | null
     phone?: string | null
     address?: string | null
     allergies?: string | null
@@ -34,17 +36,21 @@ export function PatientForm({ initialData, mode = 'create' }: PatientFormProps) 
     resolver: zodResolver(patientSchema),
     defaultValues: initialData
       ? {
+          medicalRecordNumber: initialData.medicalRecordNumber ?? '',
           name: initialData.name,
           dateOfBirth: new Date(initialData.dateOfBirth),
           gender: initialData.gender as 'MALE' | 'FEMALE',
+          suku: initialData.suku ?? '',
           phone: initialData.phone ?? '',
           address: initialData.address ?? '',
           allergies: initialData.allergies ?? '',
         }
       : {
+          medicalRecordNumber: '',
           name: '',
           dateOfBirth: new Date(),
           gender: 'MALE' as const,
+          suku: '',
           phone: '',
           address: '',
           allergies: '',
@@ -82,8 +88,8 @@ export function PatientForm({ initialData, mode = 'create' }: PatientFormProps) 
         <CardTitle>{mode === 'create' ? 'Add New Patient' : 'Edit Patient'}</CardTitle>
         <CardDescription>
           {mode === 'create'
-            ? 'Enter patient information below'
-            : 'Update patient information'}
+            ? 'Medical record number will be generated automatically'
+            : `No. RM: ${initialData?.medicalRecordNumber || '-'}`}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -129,8 +135,20 @@ export function PatientForm({ initialData, mode = 'create' }: PatientFormProps) 
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="suku">Suku / Ethnicity</Label>
+              <Input id="suku" {...register('suku')} placeholder="e.g. Jawa, Sunda, Bugis" disabled={isLoading} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
               <Input id="phone" {...register('phone')} disabled={isLoading} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="allergies">Allergies</Label>
+              <Input id="allergies" {...register('allergies')} placeholder="List any known allergies..." disabled={isLoading} />
             </div>
           </div>
 
@@ -139,17 +157,6 @@ export function PatientForm({ initialData, mode = 'create' }: PatientFormProps) 
             <textarea
               id="address"
               {...register('address')}
-              className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="allergies">Allergies</Label>
-            <textarea
-              id="allergies"
-              {...register('allergies')}
-              placeholder="List any known allergies..."
               className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               disabled={isLoading}
             />

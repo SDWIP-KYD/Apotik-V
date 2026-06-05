@@ -6,6 +6,19 @@ import { prisma } from '@/lib/prisma'
 import { patientSchema, type PatientInput } from '@/lib/validations'
 import { createAuditLog } from '@/server/services/audit-service'
 
+async function generateUniqueRecordNumber(): Promise<string> {
+  let number: string
+  let exists = true
+  while (exists) {
+    number = String(Math.floor(100000 + Math.random() * 900000))
+    const existing = await prisma.patient.findUnique({
+      where: { medicalRecordNumber: number },
+    })
+    exists = !!existing
+  }
+  return number!
+}
+
 export async function createPatient(input: PatientInput) {
   const session = await auth()
   if (!session?.user) {
@@ -13,10 +26,18 @@ export async function createPatient(input: PatientInput) {
   }
 
   const validated = patientSchema.parse(input)
+  const medicalRecordNumber = validated.medicalRecordNumber || await generateUniqueRecordNumber()
 
   const patient = await prisma.patient.create({
     data: {
-      ...validated,
+      medicalRecordNumber,
+      name: validated.name,
+      dateOfBirth: validated.dateOfBirth,
+      gender: validated.gender,
+      suku: validated.suku,
+      phone: validated.phone,
+      address: validated.address,
+      allergies: validated.allergies,
       createdById: session.user.id,
     },
   })
@@ -51,6 +72,7 @@ export async function getPatients(params?: {
         OR: [
           { name: { contains: search, mode: 'insensitive' as const } },
           { phone: { contains: search } },
+          { medicalRecordNumber: { contains: search } },
         ],
       }
     : {}
@@ -199,4 +221,40 @@ export async function deletePatient(id: string) {
 
   revalidatePath('/patients')
   return { data: { success: true } }
+}
+
+export async function searchPatients(query: string) {
+  const session = await auth()
+  if (!session?.user) {
+    return { error: 'Unauthorized' as const }
+  }
+
+  if (!query || query.length < 2) {
+    return { data: [] }
+  }
+
+  const patients = await prisma.patient.findMany({
+    where: {
+      OR: [
+        { name: { contains: query, mode: 'insensitive' } },
+        { medicalRecordNumber: { contains: query } },
+        { phone: { contains: query } },
+      ],
+    },
+    take: 10,
+    orderBy: { name: 'asc' },
+    select: {
+      id: true,
+      medicalRecordNumber: true,
+      name: true,
+      dateOfBirth: true,
+      gender: true,
+      suku: true,
+      phone: true,
+      address: true,
+      allergies: true,
+    },
+  })
+
+  return { data: patients }
 }

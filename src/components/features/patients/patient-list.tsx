@@ -26,6 +26,8 @@ import {
 interface Patient {
   id: string
   name: string
+  medicalRecordNumber: string
+  suku?: string | null
   dateOfBirth: string
   gender: string
   phone?: string | null
@@ -130,6 +132,7 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>No. RM</TableHead>
                 <TableHead>Age</TableHead>
                 <TableHead>Gender</TableHead>
                 <TableHead>Phone</TableHead>
@@ -142,7 +145,7 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
             <TableBody>
               {patients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={9} className="text-center py-8">
                     No patients found
                   </TableCell>
                 </TableRow>
@@ -150,6 +153,7 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
                 patients.map((patient) => (
                   <TableRow key={patient.id}>
                     <TableCell className="font-medium">{patient.name}</TableCell>
+                    <TableCell className="font-mono text-muted-foreground">{patient.medicalRecordNumber}</TableCell>
                     <TableCell>{calculateAge(patient.dateOfBirth)} years</TableCell>
                     <TableCell>
                       <Badge variant={patient.gender === 'MALE' ? 'default' : 'secondary'}>

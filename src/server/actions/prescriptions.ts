@@ -171,7 +171,7 @@ export async function updatePrescriptionStatus(
 
   // Validate status transitions
   const validTransitions: Record<string, string[]> = {
-    PENDING: ['PROCESSED', 'CANCELLED'],
+    PENDING: ['PROCESSED', 'COMPLETED', 'CANCELLED'],
     PROCESSED: ['COMPLETED', 'CANCELLED'],
     COMPLETED: [],
     CANCELLED: [],

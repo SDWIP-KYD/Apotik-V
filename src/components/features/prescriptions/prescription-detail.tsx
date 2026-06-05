@@ -130,7 +130,7 @@ export function PrescriptionDetail({ prescription: initialPrescription }: Prescr
               )}
             </>
           )}
-          {prescription.status === 'PROCESSED' && (
+          {(prescription.status === 'PENDING' || prescription.status === 'PROCESSED') && (
             <Button onClick={() => handleStatusUpdate('COMPLETED')} disabled={isProcessing}>
               <Check className="mr-2 h-4 w-4" />
               Complete (Deduct Stock)
