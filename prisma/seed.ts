@@ -1,6 +1,8 @@
 import { PrismaClient, Role, PrescriptionStatus } from '../src/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { hash } from 'bcryptjs'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
@@ -18,17 +20,66 @@ function futureDate(n: number): Date {
   return d
 }
 
+function getCategory(name: string): string {
+  const lower = name.toLowerCase()
+  if (/tablet/i.test(lower)) return 'Tablet'
+  if (/kapsul/i.test(lower)) return 'Kapsul'
+  if (/sirup|syrup/i.test(lower)) return 'Sirup'
+  if (/drop|tetes/i.test(lower)) return 'Drop'
+  if (/cream|krim|gel|salep/i.test(lower)) return 'Topikal'
+  if (/suspensi/i.test(lower)) return 'Suspensi'
+  if (/injeksi|inj|vial|ampul/i.test(lower)) return 'Injectable'
+  return 'Lainnya'
+}
+
+function getUnit(category: string): string {
+  switch (category) {
+    case 'Tablet': return 'Tablet'
+    case 'Kapsul': return 'Kapsul'
+    case 'Sirup': return 'Botol'
+    case 'Drop': return 'Botol'
+    case 'Topikal': return 'Tube'
+    case 'Suspensi': return 'Botol'
+    case 'Injectable': return 'Ampul'
+    default: return 'PCS'
+  }
+}
+
+function loadMedicines(): { name: string; composition: string; price: number }[] {
+  const jsonPath = join(__dirname, '..', 'goapotik_apotek-karunia-sehat-makassar_20260510_115132.json')
+  const raw = readFileSync(jsonPath, 'utf-8')
+  const products: any[] = JSON.parse(raw)
+
+  const seen = new Set<string>()
+  const unique: { name: string; composition: string; price: number }[] = []
+
+  for (const p of products) {
+    const productName = (p.product_name || '').trim()
+    if (!productName || seen.has(productName.toLowerCase())) continue
+    seen.add(productName.toLowerCase())
+
+    const price = typeof p.effective_price === 'number' ? p.effective_price : 0
+    unique.push({
+      name: productName,
+      composition: p.composition || '',
+      price,
+    })
+  }
+
+  return unique
+}
+
 async function main() {
   console.log('Seeding database with dummy data...')
 
   // === USERS ===
-  const doctorPassword = await hash('password123', 10)
+  const doctorPassword = await hash('k95', 10)
   const doctor = await prisma.user.upsert({
-    where: { email: 'doctor@apotikv.com' },
+    where: { email: 'sovia@apotikv.com' },
     update: {},
     create: {
-      name: 'Dr. Andi Pratama',
-      email: 'doctor@apotikv.com',
+      name: 'Dr. Sovia Pratiwi Lahida',
+      email: 'sovia@apotikv.com',
       password: doctorPassword,
       role: Role.DOCTOR,
     },
@@ -80,69 +131,47 @@ async function main() {
   }
   console.log(`Created ${patients.length} patients`)
 
-  // === MEDICINES ===
-  const medicinesData = [
-    // Analgesik & Antiinflamasi
-    { name: 'Paracetamol 500mg', category: 'Analgesik', unit: 'Tablet', stockQty: 200, minThreshold: 50, expiryDate: futureDate(365), batchNumber: 'PAR-2026-001', price: 500 },
-    { name: 'Ibuprofen 400mg', category: 'Analgesik', unit: 'Tablet', stockQty: 150, minThreshold: 40, expiryDate: futureDate(300), batchNumber: 'IBU-2026-001', price: 800 },
-    { name: 'Diclofenac 50mg', category: 'Analgesik', unit: 'Tablet', stockQty: 100, minThreshold: 30, expiryDate: futureDate(250), batchNumber: 'DIC-2026-001', price: 600 },
-    { name: 'Mefenamic Acid 500mg', category: 'Analgesik', unit: 'Kapsul', stockQty: 80, minThreshold: 25, expiryDate: futureDate(200), batchNumber: 'MEF-2026-001', price: 700 },
-    { name: 'Naproxen 250mg', category: 'Analgesik', unit: 'Tablet', stockQty: 5, minThreshold: 20, expiryDate: futureDate(5), batchNumber: 'NAP-2025-003', price: 900 },
+  // === MEDICINES FROM JSON ===
+  const products = loadMedicines()
 
-    // Antibiotik
-    { name: 'Amoxicillin 500mg', category: 'Antibiotik', unit: 'Kapsul', stockQty: 120, minThreshold: 30, expiryDate: futureDate(180), batchNumber: 'AMX-2026-001', price: 1200 },
-    { name: 'Azithromycin 500mg', category: 'Antibiotik', unit: 'Tablet', stockQty: 60, minThreshold: 20, expiryDate: futureDate(200), batchNumber: 'AZT-2026-001', price: 2500 },
-    { name: 'Ciprofloxacin 500mg', category: 'Antibiotik', unit: 'Tablet', stockQty: 45, minThreshold: 20, expiryDate: futureDate(150), batchNumber: 'CIP-2026-001', price: 1800 },
-    { name: 'Cefixime 200mg', category: 'Antibiotik', unit: 'Kapsul', stockQty: 3, minThreshold: 15, expiryDate: futureDate(30), batchNumber: 'CFX-2025-002', price: 3500 },
-    { name: 'Erythromycin 250mg', category: 'Antibiotik', unit: 'Tablet', stockQty: 70, minThreshold: 20, expiryDate: futureDate(120), batchNumber: 'ERY-2026-001', price: 1000 },
+  const medicinesData = products
+    .filter((p) => {
+      if (p.price === 0 || p.price > 10000000) {
+        p.price = 5000 + Math.floor(Math.random() * 45001)
+      }
+      return true
+    })
+    .map((p, idx) => {
+      const category = getCategory(p.name)
+      return {
+        name: p.name,
+        category,
+        description: p.composition,
+        unit: getUnit(category),
+        stockQty: 100 + Math.floor(Math.random() * 201),
+        minThreshold: 10,
+        expiryDate: futureDate(180 + Math.floor(Math.random() * 551)),
+        batchNumber: `BATCH-${String(idx + 1).padStart(3, '0')}`,
+        price: p.price,
+      }
+    })
 
-    // Antihistamin & Alergi
-    { name: 'Cetirizine 10mg', category: 'Antihistamin', unit: 'Tablet', stockQty: 90, minThreshold: 25, expiryDate: futureDate(300), batchNumber: 'CTZ-2026-001', price: 600 },
-    { name: 'Loratadine 10mg', category: 'Antihistamin', unit: 'Tablet', stockQty: 55, minThreshold: 20, expiryDate: futureDate(280), batchNumber: 'LRT-2026-001', price: 700 },
-    { name: 'Chlorpheniramine 4mg', category: 'Antihistamin', unit: 'Tablet', stockQty: 40, minThreshold: 15, expiryDate: futureDate(10), batchNumber: 'CLP-2025-003', price: 300 },
-
-    // Gastrointestinal
-    { name: 'Omeprazole 20mg', category: 'Gastrointestinal', unit: 'Kapsul', stockQty: 110, minThreshold: 30, expiryDate: futureDate(250), batchNumber: 'OMP-2026-001', price: 1500 },
-    { name: 'Ranitidine 150mg', category: 'Gastrointestinal', unit: 'Tablet', stockQty: 2, minThreshold: 15, expiryDate: forever(), batchNumber: 'RAN-2024-001', price: 800 },
-    { name: 'Loperamide 2mg', category: 'Gastrointestinal', unit: 'Kapsul', stockQty: 35, minThreshold: 15, expiryDate: futureDate(200), batchNumber: 'LOP-2026-001', price: 500 },
-    { name: 'Domperidone 10mg', category: 'Gastrointestinal', unit: 'Tablet', stockQty: 60, minThreshold: 20, expiryDate: futureDate(180), batchNumber: 'DOM-2026-001', price: 400 },
-
-    // Kardiovaskular
-    { name: 'Amlodipine 5mg', category: 'Kardiovaskular', unit: 'Tablet', stockQty: 85, minThreshold: 25, expiryDate: futureDate(300), batchNumber: 'AML-2026-001', price: 1000 },
-    { name: 'Metoprolol 50mg', category: 'Kardiovaskular', unit: 'Tablet', stockQty: 65, minThreshold: 20, expiryDate: futureDate(220), batchNumber: 'MET-2026-001', price: 900 },
-    { name: 'Candesartan 8mg', category: 'Kardiovaskular', unit: 'Tablet', stockQty: 40, minThreshold: 15, expiryDate: futureDate(180), batchNumber: 'CAN-2026-001', price: 2000 },
-
-    // Diabetes
-    { name: 'Metformin 500mg', category: 'Diabetes', unit: 'Tablet', stockQty: 150, minThreshold: 40, expiryDate: futureDate(250), batchNumber: 'MFM-2026-001', price: 500 },
-    { name: 'Glibenclamide 5mg', category: 'Diabetes', unit: 'Tablet', stockQty: 45, minThreshold: 15, expiryDate: futureDate(200), batchNumber: 'GLB-2026-001', price: 400 },
-    { name: 'Glimepiride 2mg', category: 'Diabetes', unit: 'Tablet', stockQty: 30, minThreshold: 15, expiryDate: futureDate(180), batchNumber: 'GMD-2026-001', price: 800 },
-
-    // Vitamin & Suplemen
-    { name: 'Vitamin C 1000mg', category: 'Vitamin', unit: 'Tablet', stockQty: 200, minThreshold: 50, expiryDate: futureDate(400), batchNumber: 'VTC-2026-001', price: 300 },
-    { name: 'Vitamin D3 1000IU', category: 'Vitamin', unit: 'Kapsul', stockQty: 100, minThreshold: 30, expiryDate: futureDate(350), batchNumber: 'VTD-2026-001', price: 500 },
-    { name: 'Zinc 20mg', category: 'Vitamin', unit: 'Tablet', stockQty: 80, minThreshold: 25, expiryDate: futureDate(300), batchNumber: 'ZNC-2026-001', price: 400 },
-
-    // Batuk & Pilek
-    { name: 'Ambroxol 30mg', category: 'Batuk & Pilek', unit: 'Tablet', stockQty: 70, minThreshold: 20, expiryDate: futureDate(200), batchNumber: 'AMB-2026-001', price: 500 },
-    { name: 'Bromhexine 8mg', category: 'Batuk & Pilek', unit: 'Tablet', stockQty: 50, minThreshold: 20, expiryDate: futureDate(180), batchNumber: 'BRH-2026-001', price: 400 },
-    { name: 'Dextromethorphan 15mg', category: 'Batuk & Pilek', unit: 'Tablet', stockQty: 4, minThreshold: 15, expiryDate: forever(), batchNumber: 'DXM-2024-001', price: 350 },
-    { name: 'Pseudoephedrine 30mg', category: 'Batuk & Pilek', unit: 'Tablet', stockQty: 45, minThreshold: 15, expiryDate: futureDate(150), batchNumber: 'PSD-2026-001', price: 600 },
-
-    // Topikal
-    { name: 'Betamethasone 0.5%', category: 'Topikal', unit: 'Tube 10g', stockQty: 25, minThreshold: 10, expiryDate: futureDate(120), batchNumber: 'BTM-2026-001', price: 8000 },
-    { name: 'Mupirocin 2%', category: 'Topikal', unit: 'Tube 5g', stockQty: 18, minThreshold: 8, expiryDate: futureDate(90), batchNumber: 'MPR-2026-001', price: 15000 },
-    { name: 'Clotrimazole 1%', category: 'Topikal', unit: 'Tube 10g', stockQty: 22, minThreshold: 10, expiryDate: futureDate(150), batchNumber: 'CLT-2026-001', price: 6000 },
-  ]
-
-  const medicines = []
-  for (const m of medicinesData) {
-    const med = await prisma.medicine.create({ data: m })
-    medicines.push(med)
+  const batchSize = 500
+  let totalInserted = 0
+  for (let i = 0; i < medicinesData.length; i += batchSize) {
+    const chunk = medicinesData.slice(i, i + batchSize)
+    const result = await prisma.medicine.createMany({
+      data: chunk,
+      skipDuplicates: true,
+    })
+    totalInserted += result.count
   }
-  console.log(`Created ${medicines.length} medicines`)
+  console.log(`Created ${totalInserted} medicines`)
+
+  // Fetch all medicines for prescription references
+  const allMedicines = await prisma.medicine.findMany()
 
   // === MEDICAL RECORDS, PRESCRIPTIONS & ITEMS ===
-  // 25 records spread over last 60 days
   const soapTemplates = [
     { subjective: 'Pasien mengeluh sakit kepala sejak 3 hari lalu, nyeri berdenyut di area pelipis', objective: 'TD: 130/85 mmHg, RR: 18x/menit, S: 36.8C', assessment: 'Tension type headache', plan: 'Ibuprofen 400mg 3x sehari 5 hari, istirahat cukup, hindari stres' },
     { subjective: 'Pasien batuk berdahak sejak seminggu lalu, demam ringan', objective: 'TD: 120/78 mmHg, RR: 22x/menit, S: 37.5C, faring congested', assessment: 'Infeksi saluran pernapasan atas', plan: 'Amoxicillin 500mg 3x sehari 7 hari, Ambroxol 30mg 3x sehari, banyak minum air putih' },
@@ -193,7 +222,6 @@ async function main() {
       },
     })
 
-    // Create prescription for most records
     if (status !== 'CANCELLED' || Math.random() > 0.5) {
       const prescription = await prisma.prescription.create({
         data: {
@@ -207,13 +235,12 @@ async function main() {
         },
       })
 
-      // Add 1-4 items per prescription
       const numItems = 1 + Math.floor(Math.random() * 3)
       const usedMeds = new Set<string>()
       for (let j = 0; j < numItems; j++) {
-        let med: typeof medicines[0]
+        let med: (typeof allMedicines)[0]
         do {
-          med = medicines[Math.floor(Math.random() * medicines.length)]
+          med = allMedicines[Math.floor(Math.random() * allMedicines.length)]
         } while (usedMeds.has(med.id))
         usedMeds.add(med.id)
 
@@ -247,14 +274,16 @@ async function main() {
   console.log('Seeding completed!')
   console.log('')
   console.log('=== LOGIN CREDENTIALS ===')
-  console.log('Doctor: doctor@apotikv.com / password123')
+  console.log('Doctor: sovia@apotikv.com / k95')
   console.log('Staff:  staff@apotikv.com / password123')
+  console.log('')
+  console.log(`=== SUMMARY ===`)
+  console.log(`Users:    2 (Doctor + Staff)`)
+  console.log(`Patients: ${patients.length}`)
+  console.log(`Medicines: ${totalInserted}`)
+  console.log(`Records:  25`)
 
   await prisma.$disconnect()
-}
-
-function forever(): Date {
-  return new Date('2030-12-31')
 }
 
 main()

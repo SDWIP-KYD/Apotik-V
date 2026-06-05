@@ -79,6 +79,25 @@ export function PatientDetail({ patient, medicines }: PatientDetailProps) {
   const [assessment, setAssessment] = useState('')
   const [plan, setPlan] = useState('')
   const [prescriptionItems, setPrescriptionItems] = useState<PrescriptionItemData[]>([])
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+
+  const today = new Date()
+  const examinedToday = patient.medicalRecords.some((r) => {
+    const visitDate = new Date(r.visitDate)
+    return visitDate.toDateString() === today.toDateString()
+  })
+
+  const filteredRecords = patient.medicalRecords.filter((record) => {
+    const visitDate = new Date(record.visitDate)
+    if (dateFrom && visitDate < new Date(dateFrom)) return false
+    if (dateTo) {
+      const to = new Date(dateTo)
+      to.setHours(23, 59, 59, 999)
+      if (visitDate > to) return false
+    }
+    return true
+  })
 
   function calculateAge(dateOfBirth: string) {
     const today = new Date()
@@ -192,6 +211,11 @@ export function PatientDetail({ patient, medicines }: PatientDetailProps) {
               {patient.allergies && (
                 <span className="ml-2">
                   <Badge variant="destructive">Allergy: {patient.allergies}</Badge>
+                </span>
+              )}
+              {examinedToday && (
+                <span className="ml-2">
+                  <Badge className="bg-green-100 text-green-800">Sudah Diperiksa Hari Ini</Badge>
                 </span>
               )}
             </p>
@@ -403,14 +427,45 @@ export function PatientDetail({ patient, medicines }: PatientDetailProps) {
       {/* History Tab */}
       {activeTab === 'history' && (
         <div className="space-y-4">
-          {patient.medicalRecords.length === 0 ? (
+          <div className="flex gap-4 items-end">
+            <div className="space-y-1">
+              <Label htmlFor="dateFrom">From Date</Label>
+              <Input
+                id="dateFrom"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="dateTo">To Date</Label>
+              <Input
+                id="dateTo"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+            {(dateFrom || dateTo) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setDateFrom(''); setDateTo('') }}
+              >
+                Clear Filter
+              </Button>
+            )}
+          </div>
+          {filteredRecords.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
-                <p className="text-muted-foreground">No visit history yet</p>
+                <p className="text-muted-foreground">
+                  {patient.medicalRecords.length === 0 ? 'No visit history yet' : 'No records match the selected date range'}
+                </p>
               </CardContent>
             </Card>
           ) : (
-            patient.medicalRecords.map((record) => (
+            filteredRecords.map((record) => (
               <Card key={record.id}>
                 <CardHeader>
                   <div className="flex items-center justify-between">

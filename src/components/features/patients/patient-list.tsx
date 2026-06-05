@@ -33,6 +33,7 @@ interface Patient {
   createdAt: string
   createdBy: { id: string; name: string }
   _count: { medicalRecords: number; prescriptions: number }
+  examinedToday: boolean
 }
 
 interface PatientListProps {
@@ -134,13 +135,14 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
                 <TableHead>Phone</TableHead>
                 <TableHead>Allergies</TableHead>
                 <TableHead>Records</TableHead>
+                <TableHead>Examined Today</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {patients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     No patients found
                   </TableCell>
                 </TableRow>
@@ -165,6 +167,11 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
                       )}
                     </TableCell>
                     <TableCell>{patient._count.medicalRecords}</TableCell>
+                    <TableCell>
+                      <Badge className={patient.examinedToday ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                        {patient.examinedToday ? '✓ Diperiksa' : 'Belum'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button

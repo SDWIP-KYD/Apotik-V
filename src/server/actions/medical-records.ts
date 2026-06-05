@@ -74,6 +74,7 @@ export async function createMedicalRecord(input: CreateRecordInput) {
   })
 
   revalidatePath(`/patients/${validated.patientId}`)
+  revalidatePath(`/medical-records/${validated.patientId}`)
   return { data: result }
 }
 

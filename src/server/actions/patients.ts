@@ -69,8 +69,25 @@ export async function getPatients(params?: {
     prisma.patient.count({ where }),
   ])
 
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  const patientsWithExamined = await Promise.all(
+    patients.map(async (patient) => {
+      const count = await prisma.medicalRecord.count({
+        where: {
+          patientId: patient.id,
+          visitDate: { gte: today, lt: tomorrow },
+        },
+      })
+      return { ...patient, examinedToday: count > 0 }
+    })
+  )
+
   return {
-    data: patients,
+    data: patientsWithExamined,
     pagination: {
       page,
       limit,
