@@ -3,10 +3,14 @@
 import { revalidatePath } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { medicalRecordSchema, type MedicalRecordInput } from '@/lib/validations'
+import { medicalRecordSchema, type MedicalRecordInput, prescriptionItemSchema, type PrescriptionItemInput } from '@/lib/validations'
 import { createAuditLog } from '@/server/services/audit-service'
 
-export async function createMedicalRecord(input: MedicalRecordInput) {
+interface CreateRecordInput extends MedicalRecordInput {
+  prescriptionItems?: PrescriptionItemInput[]
+}
+
+export async function createMedicalRecord(input: CreateRecordInput) {
   const session = await auth()
   if (!session?.user) {
     return { error: 'Unauthorized' }
@@ -18,7 +22,10 @@ export async function createMedicalRecord(input: MedicalRecordInput) {
 
   const validated = medicalRecordSchema.parse(input)
 
-  // Create medical record and prescription in a transaction
+  // Validate prescription items if provided
+  const items = input.prescriptionItems?.map((item) => prescriptionItemSchema.parse(item)) ?? []
+
+  // Create medical record + prescription + items in a transaction
   const result = await prisma.$transaction(async (tx) => {
     const record = await tx.medicalRecord.create({
       data: {
@@ -31,14 +38,26 @@ export async function createMedicalRecord(input: MedicalRecordInput) {
       },
     })
 
-    // Auto-create prescription
     const prescription = await tx.prescription.create({
       data: {
         recordId: record.id,
         patientId: validated.patientId,
+        status: items.length > 0 ? 'PENDING' : 'PENDING',
         createdById: session.user.id,
       },
     })
+
+    if (items.length > 0) {
+      await tx.prescriptionItem.createMany({
+        data: items.map((item) => ({
+          prescriptionId: prescription.id,
+          medicineId: item.medicineId,
+          dosage: item.dosage,
+          quantity: item.quantity,
+          notes: item.notes,
+        })),
+      })
+    }
 
     return { record, prescription }
   })
@@ -54,7 +73,6 @@ export async function createMedicalRecord(input: MedicalRecordInput) {
     } as unknown as Record<string, unknown>,
   })
 
-  revalidatePath(`/medical-records/${validated.patientId}`)
   revalidatePath(`/patients/${validated.patientId}`)
   return { data: result }
 }

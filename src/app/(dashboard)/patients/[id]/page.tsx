@@ -1,22 +1,25 @@
 import { getPatientById } from '@/server/actions/patients'
+import { getMedicines } from '@/server/actions/medicines'
 import { notFound } from 'next/navigation'
 import { PatientDetail } from '@/components/features/patients/patient-detail'
 
 export default async function PatientDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ edit?: string }>
 }) {
   const { id } = await params
-  const { edit } = await searchParams
 
-  const result = await getPatientById(id)
+  const [patientResult, medicinesResult] = await Promise.all([
+    getPatientById(id),
+    getMedicines({ limit: 100 }),
+  ])
 
-  if (result.error || !result.data) {
+  if (patientResult.error || !patientResult.data) {
     notFound()
   }
 
-  return <PatientDetail patient={result.data as any} isEditing={edit === 'true'} />
+  const medicines = (medicinesResult.data ?? []) as any[]
+
+  return <PatientDetail patient={patientResult.data as any} medicines={medicines} />
 }
