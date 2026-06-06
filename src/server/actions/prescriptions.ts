@@ -173,22 +173,54 @@ export async function updatePrescriptionStatus(
   const validTransitions: Record<string, string[]> = {
     PENDING: ['PROCESSED', 'COMPLETED', 'CANCELLED'],
     PROCESSED: ['COMPLETED', 'CANCELLED'],
-    COMPLETED: [],
-    CANCELLED: [],
+    COMPLETED: ['PENDING', 'PROCESSED', 'CANCELLED'],
+    CANCELLED: ['PENDING'],
   }
 
   if (!validTransitions[prescription.status]?.includes(status)) {
     return { error: `Cannot transition from ${prescription.status} to ${status}` }
   }
 
-  // Check permissions for cancel
+  // Check permissions for cancel/complete
   if (status === 'CANCELLED' && session.user.role !== 'DOCTOR') {
     return { error: 'Only doctors can cancel prescriptions' }
   }
+  if (status === 'COMPLETED' && session.user.role !== 'DOCTOR') {
+    return { error: 'Only doctors can complete prescriptions' }
+  }
 
-  // If completing, deduct stock
-  if (status === 'COMPLETED') {
-    // Check stock for all items
+  // Handle stock changes based on status transitions
+  const wasCompleted = prescription.status === 'COMPLETED'
+  const isNowCompleted = status === 'COMPLETED'
+
+  if (wasCompleted && !isNowCompleted) {
+    // Reversing from COMPLETED: restore stock
+    await prisma.$transaction(async (tx) => {
+      for (const item of prescription.items) {
+        await tx.medicine.update({
+          where: { id: item.medicineId },
+          data: { stockQty: { increment: item.quantity } },
+        })
+      }
+
+      await tx.prescription.update({
+        where: { id: prescriptionId },
+        data: { status },
+      })
+
+      await tx.auditLog.create({
+        data: {
+          userId: session.user.id,
+          action: 'UPDATE',
+          entity: 'Prescription',
+          entityId: prescriptionId,
+          oldValues: { status: prescription.status },
+          newValues: { status },
+        },
+      })
+    })
+  } else if (!wasCompleted && isNowCompleted) {
+    // Completing: deduct stock
     for (const item of prescription.items) {
       const medicine = await prisma.medicine.findUnique({
         where: { id: item.medicineId },
@@ -200,7 +232,6 @@ export async function updatePrescriptionStatus(
       }
     }
 
-    // Atomic transaction: deduct stock + update status
     await prisma.$transaction(async (tx) => {
       for (const item of prescription.items) {
         await tx.medicine.update({

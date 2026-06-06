@@ -21,7 +21,6 @@ interface MedicineFormProps {
     stockQty: number
     minThreshold: number
     expiryDate: string
-    batchNumber: string
     price: number
   }
   mode?: 'create' | 'edit'
@@ -41,7 +40,6 @@ export function MedicineForm({ initialData, mode = 'create' }: MedicineFormProps
           stockQty: initialData.stockQty,
           minThreshold: initialData.minThreshold,
           expiryDate: new Date(initialData.expiryDate),
-          batchNumber: initialData.batchNumber,
           price: initialData.price,
         }
       : {
@@ -51,7 +49,6 @@ export function MedicineForm({ initialData, mode = 'create' }: MedicineFormProps
           stockQty: 0,
           minThreshold: 10,
           expiryDate: new Date(),
-          batchNumber: '',
           price: 0,
         },
   })
@@ -104,7 +101,17 @@ export function MedicineForm({ initialData, mode = 'create' }: MedicineFormProps
 
             <div className="space-y-2">
               <Label htmlFor="category">Category *</Label>
-              <Input id="category" {...register('category')} placeholder="e.g., Analgesik" disabled={isLoading} />
+              <select id="category" {...register('category')} disabled={isLoading} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                <option value="">Select category</option>
+                <option value="Tablet">Tablet</option>
+                <option value="Kapsul">Kapsul</option>
+                <option value="Sirup">Sirup</option>
+                <option value="Drop">Drop</option>
+                <option value="Topikal">Topikal</option>
+                <option value="Suspensi">Suspensi</option>
+                <option value="Injectable">Injectable</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
               {errors.category && (
                 <p className="text-sm text-red-500">{errors.category.message}</p>
               )}
@@ -114,17 +121,20 @@ export function MedicineForm({ initialData, mode = 'create' }: MedicineFormProps
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="unit">Unit *</Label>
-              <Input id="unit" {...register('unit')} placeholder="e.g., Tablet, Capsule" disabled={isLoading} />
+              <select id="unit" {...register('unit')} disabled={isLoading} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                <option value="">Select unit</option>
+                <option value="Tablet">Tablet</option>
+                <option value="Kapsul">Kapsul</option>
+                <option value="Botol">Botol</option>
+                <option value="Tube">Tube</option>
+                <option value="Ampul">Ampul</option>
+                <option value="PCS">PCS</option>
+                <option value="Strip">Strip</option>
+                <option value="Box">Box</option>
+                <option value="Sachet">Sachet</option>
+              </select>
               {errors.unit && (
                 <p className="text-sm text-red-500">{errors.unit.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="batchNumber">Batch Number *</Label>
-              <Input id="batchNumber" {...register('batchNumber')} disabled={isLoading} />
-              {errors.batchNumber && (
-                <p className="text-sm text-red-500">{errors.batchNumber.message}</p>
               )}
             </div>
           </div>

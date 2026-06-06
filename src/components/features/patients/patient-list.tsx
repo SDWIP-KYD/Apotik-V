@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -63,19 +63,6 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
   const isDoctor = session?.user?.role === 'DOCTOR'
 
   const today = new Date().toISOString().split('T')[0]
-
-  function changeDate(delta: number) {
-    const d = new Date(dateFilter)
-    d.setDate(d.getDate() + delta)
-    setDateFilter(d.toISOString().split('T')[0])
-  }
-
-  useEffect(() => {
-    const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    if (dateFilter) params.set('date', dateFilter)
-    router.push(`/patients?${params.toString()}`)
-  }, [dateFilter])
 
   async function handleDelete() {
     if (!deleteId) return
@@ -148,22 +135,31 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
       </form>
 
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => changeDate(-1)}>
+        <Link
+          href={`/patients?${(() => { const p = new URLSearchParams(); if (search) p.set('search', search); const d = new Date(dateFilter); d.setDate(d.getDate() - 1); p.set('date', d.toISOString().split('T')[0]); return p.toString(); })()}`}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
           <ChevronLeft className="h-4 w-4" /> Prev Day
-        </Button>
+        </Link>
         <Input
           type="date"
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value)}
           className="w-auto"
         />
-        <Button variant="outline" size="sm" onClick={() => changeDate(1)}>
+        <Link
+          href={`/patients?${(() => { const p = new URLSearchParams(); if (search) p.set('search', search); const d = new Date(dateFilter); d.setDate(d.getDate() + 1); p.set('date', d.toISOString().split('T')[0]); return p.toString(); })()}`}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
           Next Day <ChevronRight className="h-4 w-4" />
-        </Button>
+        </Link>
         {dateFilter !== today && (
-          <Button variant="ghost" size="sm" onClick={() => setDateFilter(today)}>
+          <Link
+            href={`/patients?${(() => { const p = new URLSearchParams(); if (search) p.set('search', search); p.set('date', new Date().toISOString().split('T')[0]); return p.toString(); })()}`}
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
+          >
             Today
-          </Button>
+          </Link>
         )}
       </div>
 
@@ -264,34 +260,18 @@ export function PatientList({ initialPatients, pagination, search: initialSearch
             Page {pagination.page} of {pagination.totalPages}
           </p>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const params = new URLSearchParams()
-                if (search) params.set('search', search)
-                if (dateFilter) params.set('date', dateFilter)
-                params.set('page', String(pagination.page - 1))
-                router.push(`/patients?${params.toString()}`)
-              }}
-              disabled={pagination.page <= 1}
+            <Link
+              href={`/patients?${(() => { const p = new URLSearchParams(); if (search) p.set('search', search); if (dateFilter) p.set('date', dateFilter); p.set('page', String(pagination.page - 1)); return p.toString(); })()}`}
+              className={`${buttonVariants({ variant: "outline", size: "sm" })} ${pagination.page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
             >
               Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const params = new URLSearchParams()
-                if (search) params.set('search', search)
-                if (dateFilter) params.set('date', dateFilter)
-                params.set('page', String(pagination.page + 1))
-                router.push(`/patients?${params.toString()}`)
-              }}
-              disabled={pagination.page >= pagination.totalPages}
+            </Link>
+            <Link
+              href={`/patients?${(() => { const p = new URLSearchParams(); if (search) p.set('search', search); if (dateFilter) p.set('date', dateFilter); p.set('page', String(pagination.page + 1)); return p.toString(); })()}`}
+              className={`${buttonVariants({ variant: "outline", size: "sm" })} ${pagination.page >= pagination.totalPages ? 'pointer-events-none opacity-50' : ''}`}
             >
               Next
-            </Button>
+            </Link>
           </div>
         </div>
       )}

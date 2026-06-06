@@ -24,6 +24,9 @@ interface PatientFormProps {
     suku?: string | null
     phone?: string | null
     address?: string | null
+    emergencyContactName?: string | null
+    emergencyContactPhone?: string | null
+    emergencyContactRelation?: string | null
     allergies?: string | null
   }
   mode?: 'create' | 'edit'
@@ -38,6 +41,9 @@ interface FoundPatient {
   suku: string | null
   phone: string | null
   address: string | null
+  emergencyContactName: string | null
+  emergencyContactPhone: string | null
+  emergencyContactRelation: string | null
   allergies: string | null
 }
 
@@ -63,6 +69,9 @@ export function PatientForm({ initialData, mode = 'create' }: PatientFormProps) 
           suku: initialData.suku ?? '',
           phone: initialData.phone ?? '',
           address: initialData.address ?? '',
+          emergencyContactName: initialData.emergencyContactName ?? '',
+          emergencyContactPhone: initialData.emergencyContactPhone ?? '',
+          emergencyContactRelation: initialData.emergencyContactRelation ?? '',
           allergies: initialData.allergies ?? '',
         }
       : {
@@ -73,6 +82,9 @@ export function PatientForm({ initialData, mode = 'create' }: PatientFormProps) 
           suku: '',
           phone: '',
           address: '',
+          emergencyContactName: '',
+          emergencyContactPhone: '',
+          emergencyContactRelation: '',
           allergies: '',
         },
   })
@@ -122,6 +134,9 @@ export function PatientForm({ initialData, mode = 'create' }: PatientFormProps) 
     setValue('suku', patient.suku ?? '')
     setValue('phone', patient.phone ?? '')
     setValue('address', patient.address ?? '')
+    setValue('emergencyContactName', patient.emergencyContactName ?? '')
+    setValue('emergencyContactPhone', patient.emergencyContactPhone ?? '')
+    setValue('emergencyContactRelation', patient.emergencyContactRelation ?? '')
     setValue('allergies', patient.allergies ?? '')
     setSearchQuery('')
     setShowDropdown(false)
@@ -143,8 +158,9 @@ export function PatientForm({ initialData, mode = 'create' }: PatientFormProps) 
       toast.success(initialData ? 'Patient updated' : 'Patient created')
       router.push('/patients')
       router.refresh()
-    } catch {
-      toast.error('An error occurred')
+    } catch (e) {
+      console.error('Create patient error:', e)
+      toast.error(e instanceof Error ? e.message : 'An error occurred')
     } finally {
       setIsLoading(false)
     }
@@ -178,7 +194,9 @@ export function PatientForm({ initialData, mode = 'create' }: PatientFormProps) 
                     setFoundPatient(null)
                     form.reset({
                       medicalRecordNumber: '', name: '', dateOfBirth: new Date(),
-                      gender: 'MALE', suku: '', phone: '', address: '', allergies: '',
+                      gender: 'MALE', suku: '', phone: '', address: '',
+                      emergencyContactName: '', emergencyContactPhone: '', emergencyContactRelation: '',
+                      allergies: '',
                     })
                   }}
                 >
@@ -269,15 +287,9 @@ export function PatientForm({ initialData, mode = 'create' }: PatientFormProps) 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" {...register('phone')} disabled={isLoading} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="allergies">Allergies</Label>
-              <Input id="allergies" {...register('allergies')} placeholder="List any known allergies..." disabled={isLoading} />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input id="phone" {...register('phone')} disabled={isLoading} />
           </div>
 
           <div className="space-y-2">
@@ -288,6 +300,29 @@ export function PatientForm({ initialData, mode = 'create' }: PatientFormProps) 
               className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               disabled={isLoading}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Emergency Contact</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="emergencyContactName">Contact Name</Label>
+                <Input id="emergencyContactName" {...register('emergencyContactName')} disabled={isLoading} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emergencyContactPhone">Contact Phone</Label>
+                <Input id="emergencyContactPhone" {...register('emergencyContactPhone')} disabled={isLoading} />
+              </div>
+            </div>
+            <div className="space-y-2 max-w-xs">
+              <Label htmlFor="emergencyContactRelation">Relation</Label>
+              <Input id="emergencyContactRelation" {...register('emergencyContactRelation')} placeholder="e.g. Spouse, Parent, Child" disabled={isLoading} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="allergies">Allergies</Label>
+            <Input id="allergies" {...register('allergies')} placeholder="List any known allergies..." disabled={isLoading} />
           </div>
 
           <div className="flex gap-4">

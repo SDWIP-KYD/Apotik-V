@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
@@ -325,34 +325,18 @@ export function InventoryTable({
             Page {pagination.page} of {pagination.totalPages}
           </p>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const params = new URLSearchParams()
-                if (search) params.set('search', search)
-                if (selectedCategory) params.set('category', selectedCategory)
-                params.set('page', String(pagination.page - 1))
-                router.push(`/inventory?${params.toString()}`)
-              }}
-              disabled={pagination.page <= 1}
+            <Link
+              href={`/inventory?${(() => { const p = new URLSearchParams(); if (search) p.set('search', search); if (selectedCategory) p.set('category', selectedCategory); p.set('page', String(pagination.page - 1)); return p.toString(); })()}`}
+              className={`${buttonVariants({ variant: "outline", size: "sm" })} ${pagination.page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
             >
               Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const params = new URLSearchParams()
-                if (search) params.set('search', search)
-                if (selectedCategory) params.set('category', selectedCategory)
-                params.set('page', String(pagination.page + 1))
-                router.push(`/inventory?${params.toString()}`)
-              }}
-              disabled={pagination.page >= pagination.totalPages}
+            </Link>
+            <Link
+              href={`/inventory?${(() => { const p = new URLSearchParams(); if (search) p.set('search', search); if (selectedCategory) p.set('category', selectedCategory); p.set('page', String(pagination.page + 1)); return p.toString(); })()}`}
+              className={`${buttonVariants({ variant: "outline", size: "sm" })} ${pagination.page >= pagination.totalPages ? 'pointer-events-none opacity-50' : ''}`}
             >
               Next
-            </Button>
+            </Link>
           </div>
         </div>
       )}

@@ -15,5 +15,6 @@ export default async function PatientDetailPage({
     notFound()
   }
 
-  return <PatientDetail patient={patientResult.data as any} />
+  const patient = JSON.parse(JSON.stringify(patientResult.data))
+  return <PatientDetail patient={patient} />
 }

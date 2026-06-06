@@ -23,6 +23,7 @@ export default async function InventoryPage({
 
   return (
     <InventoryTable
+      key={`${search}-${category}-${page}`}
       initialMedicines={result.data as any}
       categories={result.categories || []}
       pagination={result.pagination!}

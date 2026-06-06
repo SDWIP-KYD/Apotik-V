@@ -22,8 +22,10 @@ export default function DashboardLayout({
 
   if (status === 'loading') {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex h-screen items-center justify-center" style={{ background: '#F0EDE8' }}>
+        <div className="relative">
+          <div className="w-10 h-10 rounded-xl bg-[#E63946] animate-pulse shadow-[0_4px_16px_rgba(230,57,70,0.35)]" />
+        </div>
       </div>
     )
   }
@@ -33,7 +35,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: '#F0EDE8' }}>
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar />

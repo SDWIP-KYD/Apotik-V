@@ -59,7 +59,7 @@ export function PrescriptionDetail({ prescription: initialPrescription }: Prescr
     }
   }
 
-  async function handleStatusUpdate(newStatus: 'PROCESSED' | 'COMPLETED' | 'CANCELLED') {
+  async function handleStatusUpdate(newStatus: 'PENDING' | 'PROCESSED' | 'COMPLETED' | 'CANCELLED') {
     setIsProcessing(true)
     try {
       const result = await updatePrescriptionStatus(prescription.id, newStatus)
@@ -116,24 +116,33 @@ export function PrescriptionDetail({ prescription: initialPrescription }: Prescr
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {isPending && (
-            <>
-              <Button onClick={() => handleStatusUpdate('PROCESSED')} disabled={isProcessing}>
-                <Check className="mr-2 h-4 w-4" />
-                Process
-              </Button>
-              {isDoctor && (
-                <Button variant="destructive" onClick={() => handleStatusUpdate('CANCELLED')} disabled={isProcessing}>
-                  <X className="mr-2 h-4 w-4" />
-                  Cancel
-                </Button>
-              )}
-            </>
+          {(prescription.status === 'PENDING' || prescription.status === 'COMPLETED') && (
+            <Button onClick={() => handleStatusUpdate('PROCESSED')} disabled={isProcessing}>
+              <Check className="mr-2 h-4 w-4" />
+              Process
+            </Button>
+          )}
+          {isPending && isDoctor && (
+            <Button variant="destructive" onClick={() => handleStatusUpdate('CANCELLED')} disabled={isProcessing}>
+              <X className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
           )}
           {(prescription.status === 'PENDING' || prescription.status === 'PROCESSED') && (
             <Button onClick={() => handleStatusUpdate('COMPLETED')} disabled={isProcessing}>
               <Check className="mr-2 h-4 w-4" />
               Complete
+            </Button>
+          )}
+          {(prescription.status === 'COMPLETED' || prescription.status === 'CANCELLED') && (
+            <Button variant="outline" onClick={() => handleStatusUpdate('PENDING')} disabled={isProcessing}>
+              Kembali ke PENDING
+            </Button>
+          )}
+          {prescription.status === 'COMPLETED' && isDoctor && (
+            <Button variant="destructive" onClick={() => handleStatusUpdate('CANCELLED')} disabled={isProcessing}>
+              <X className="mr-2 h-4 w-4" />
+              Cancel
             </Button>
           )}
         </div>

@@ -37,19 +37,23 @@ model User {
 }
 
 model Patient {
-  id                    String    @id @default(cuid())
-  medicalRecordNumber   String    @unique
-  name                  String
-  dateOfBirth           DateTime
-  gender                String
-  suku                  String?
-  phone                 String?
-  address               String?
-  allergies             String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  createdById           String
-  createdBy             User      @relation("CreatedBy", fields: [createdById], references: [id])
+  id                      String    @id @default(cuid())
+  medicalRecordNumber     String    @unique
+  name                    String
+  dateOfBirth             DateTime
+  gender                  String
+  suku                    String?
+  phone                   String?
+  address                 String?
+  allergies               String?
+  emergencyContactName    String?
+  emergencyContactPhone   String?
+  emergencyContactRelation String?
+  isActive                Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  createdById             String
+  createdBy               User      @relation("CreatedBy", fields: [createdById], references: [id])
 
   // Relations
   medicalRecords MedicalRecord[]
@@ -68,6 +72,17 @@ model MedicalRecord {
   assessment    String    @db.Text
   plan          String    @db.Text
 
+  // Vital Signs (structured)
+  bloodPressureSystolic  Int?
+  bloodPressureDiastolic Int?
+  temperature            Float?
+  respiratoryRate        Int?
+  heartRate              Int?
+  spo2                   Int?
+  weight                 Float?
+  height                 Float?
+  diagnosisCode          String?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -85,7 +100,6 @@ model Medicine {
   stockQty      Int       @default(0)
   minThreshold  Int       @default(10)
   expiryDate    DateTime
-  batchNumber   String
   price         Float
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

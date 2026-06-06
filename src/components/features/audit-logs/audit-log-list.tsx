@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
@@ -203,32 +203,18 @@ export function AuditLogList({
             Page {pagination.page} of {pagination.totalPages}
           </p>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const params = new URLSearchParams()
-                if (entityFilter) params.set('entity', entityFilter)
-                params.set('page', String(pagination.page - 1))
-                router.push(`/audit-logs?${params.toString()}`)
-              }}
-              disabled={pagination.page <= 1}
+            <Link
+              href={`/audit-logs?${(() => { const p = new URLSearchParams(); if (entityFilter) p.set('entity', entityFilter); p.set('page', String(pagination.page - 1)); return p.toString(); })()}`}
+              className={`${buttonVariants({ variant: "outline", size: "sm" })} ${pagination.page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
             >
               Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const params = new URLSearchParams()
-                if (entityFilter) params.set('entity', entityFilter)
-                params.set('page', String(pagination.page + 1))
-                router.push(`/audit-logs?${params.toString()}`)
-              }}
-              disabled={pagination.page >= pagination.totalPages}
+            </Link>
+            <Link
+              href={`/audit-logs?${(() => { const p = new URLSearchParams(); if (entityFilter) p.set('entity', entityFilter); p.set('page', String(pagination.page + 1)); return p.toString(); })()}`}
+              className={`${buttonVariants({ variant: "outline", size: "sm" })} ${pagination.page >= pagination.totalPages ? 'pointer-events-none opacity-50' : ''}`}
             >
               Next
-            </Button>
+            </Link>
           </div>
         </div>
       )}

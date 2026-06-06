@@ -7,7 +7,7 @@ import { searchMedicines } from '@/server/actions/medicines'
 
 interface MedicineSearchProps {
   value: string
-  onChange: (medicineId: string) => void
+  onChange: (medicineId: string, medicineName?: string) => void
   disabled?: boolean
   placeholder?: string
 }
@@ -39,13 +39,11 @@ export function MedicineSearch({
 
   const [selectedName, setSelectedName] = React.useState('')
 
-  // Fetch medicine by ID when value changes (to show selected name)
   React.useEffect(() => {
     if (!value) {
       setSelectedName('')
       return
     }
-    // If we already have it in results, use that
     const found = results.find((m) => m.id === value)
     if (found) {
       setSelectedName(found.name)
@@ -81,7 +79,6 @@ export function MedicineSearch({
     }
   }, [query, doSearch])
 
-  // Scroll active item into view
   React.useEffect(() => {
     if (activeIndex >= 0 && itemRefs.current[activeIndex]) {
       itemRefs.current[activeIndex]!.scrollIntoView({ block: 'nearest' })
@@ -89,7 +86,7 @@ export function MedicineSearch({
   }, [activeIndex])
 
   function selectMedicine(med: MedicineResult) {
-    onChange(med.id)
+    onChange(med.id, med.name)
     setSelectedName(med.name)
     setQuery('')
     setResults([])
@@ -134,7 +131,6 @@ export function MedicineSearch({
     }
   }
 
-  // Close on outside click
   React.useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -153,6 +149,20 @@ export function MedicineSearch({
   }, [])
 
   const displayText = query || selectedName
+
+  const dropdownStyle: React.CSSProperties = {
+    backgroundColor: '#ffffff',
+    color: '#1a1a1a',
+    position: 'absolute',
+    zIndex: 9999,
+    width: '100%',
+    marginTop: '4px',
+    borderRadius: '8px',
+    border: '1px solid #d1d5db',
+    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 4px 10px -3px rgba(0,0,0,0.1)',
+    maxHeight: '240px',
+    overflowY: 'auto',
+  }
 
   return (
     <div className="relative w-full">
@@ -184,21 +194,17 @@ export function MedicineSearch({
       </div>
 
       {open && loading && query && (
-        <div
-          className={cn(
-            'absolute z-50 mt-1 w-full rounded-md border bg-popover p-3 text-sm text-muted-foreground shadow-md'
-          )}
-        >
-          Searching...
+        <div style={dropdownStyle}>
+          <div style={{ padding: '12px', fontSize: '14px', color: '#6b7280' }}>
+            Searching...
+          </div>
         </div>
       )}
 
       {open && !loading && results.length > 0 && (
         <div
           ref={listRef}
-          className={cn(
-            'absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover p-1 shadow-md'
-          )}
+          style={dropdownStyle}
           role="listbox"
         >
           {results.map((med, index) => {
@@ -213,13 +219,13 @@ export function MedicineSearch({
                 role="option"
                 aria-selected={isSelected}
                 aria-disabled={isDisabled}
-                className={cn(
-                  'relative flex flex-col rounded-sm px-2.5 py-2 text-sm cursor-pointer select-none outline-none',
-                  isActive && 'bg-accent text-accent-foreground',
-                  !isActive && !isDisabled && 'hover:bg-accent/50',
-                  isDisabled && 'opacity-40 cursor-not-allowed',
-                  isSelected && !isActive && 'bg-accent/30'
-                )}
+                style={{
+                  padding: '8px 10px',
+                  cursor: isDisabled ? 'not-allowed' : 'pointer',
+                  opacity: isDisabled ? 0.4 : 1,
+                  backgroundColor: isActive ? '#f3f4f6' : isSelected ? '#eff6ff' : '#ffffff',
+                  borderBottom: index < results.length - 1 ? '1px solid #f3f4f6' : 'none',
+                }}
                 onMouseDown={(e) => {
                   e.preventDefault()
                   if (!isDisabled) selectMedicine(med)
@@ -228,12 +234,16 @@ export function MedicineSearch({
                   if (!isDisabled) setActiveIndex(index)
                 }}
               >
-                <span className="font-medium">{med.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {med.category} &middot; Stock: {med.stockQty} {med.unit} &middot; Rp {med.price.toLocaleString()}
-                </span>
+                <div style={{ fontSize: '14px', fontWeight: 500, color: '#111827' }}>
+                  {med.name}
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                  {med.category} · Stock: {med.stockQty} {med.unit} · Rp {med.price.toLocaleString()}
+                </div>
                 {isDisabled && (
-                  <span className="text-xs text-destructive">Out of stock</span>
+                  <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '2px' }}>
+                    Out of stock
+                  </div>
                 )}
               </div>
             )
@@ -242,12 +252,10 @@ export function MedicineSearch({
       )}
 
       {open && query && !loading && results.length === 0 && (
-        <div
-          className={cn(
-            'absolute z-50 mt-1 w-full rounded-md border bg-popover p-3 text-sm text-muted-foreground shadow-md'
-          )}
-        >
-          No medicine found.
+        <div style={dropdownStyle}>
+          <div style={{ padding: '12px', fontSize: '14px', color: '#6b7280' }}>
+            No medicine found.
+          </div>
         </div>
       )}
     </div>

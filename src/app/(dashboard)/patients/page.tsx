@@ -23,6 +23,7 @@ export default async function PatientsPage({
 
   return (
     <PatientList
+      key={`${search}-${page}-${date}`}
       initialPatients={result.data as any}
       pagination={result.pagination!}
       search={search}

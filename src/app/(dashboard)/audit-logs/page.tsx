@@ -27,6 +27,7 @@ export default async function AuditLogsPage({
 
   return (
     <AuditLogList
+      key={`${entity}-${page}`}
       initialLogs={result.data as any}
       pagination={result.pagination!}
       entity={entity}

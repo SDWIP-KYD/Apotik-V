@@ -25,39 +25,51 @@ export function Topbar() {
     .slice(0, 2) || '??'
 
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-card px-6">
+    <header
+      className="flex h-16 items-center justify-between px-6 z-10"
+      style={{
+        background: 'rgba(255,255,255,0.5)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255,255,255,0.6)',
+        boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
+      }}
+    >
       <div className="flex items-center gap-4">
-        <h2 className="text-lg font-semibold">Dashboard</h2>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-[#E63946]" />
+          <h2 className="text-lg font-bold text-[#1D3557] tracking-tight">Dashboard</h2>
+        </div>
       </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Button variant="ghost" className="relative h-9 w-9 rounded-full bg-white/60 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:bg-white/80">
             <Avatar className="h-8 w-8">
-              <AvatarFallback>{initials}</AvatarFallback>
+              <AvatarFallback className="bg-[#1D3557] text-white text-xs font-bold">{initials}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end">
+        <DropdownMenuContent className="w-56 glass-card rounded-xl" align="end">
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">
+              <p className="text-sm font-bold text-[#1D3557] leading-none">
                 {session?.user?.name}
               </p>
-              <p className="text-xs leading-none text-muted-foreground">
+              <p className="text-xs leading-none text-[#6B7280]">
                 {session?.user?.email}
               </p>
-              <p className="text-xs leading-none text-muted-foreground">
-                Role: {session?.user?.role}
+              <p className="text-[0.65rem] font-bold uppercase tracking-wider text-[#E63946]">
+                {session?.user?.role}
               </p>
             </div>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator />
+          <DropdownMenuSeparator className="bg-white/40" />
           <DropdownMenuItem>
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
+          <DropdownMenuSeparator className="bg-white/40" />
           <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/login' })}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Sign out</span>

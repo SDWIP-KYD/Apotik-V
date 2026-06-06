@@ -1,31 +1,24 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { format } from 'date-fns'
 import { Search, FileText } from 'lucide-react'
+import Link from 'next/link'
 
 interface Patient {
   id: string
   name: string
   medicalRecordNumber: string
-  dateOfBirth: string
-  gender: string
-  phone?: string | null
-  _count: { medicalRecords: number; prescriptions: number }
+  isActive: boolean
+  _count: { medicalRecords: number }
   examinedToday: boolean
+  lastVisit?: { visitDate: string; assessment: string } | null
 }
 
 interface MedicalRecordsListProps {
@@ -39,37 +32,25 @@ interface MedicalRecordsListProps {
   search?: string
 }
 
-export function MedicalRecordsList({
-  initialPatients,
-  pagination,
-  search: initialSearch,
-}: MedicalRecordsListProps) {
+export function MedicalRecordsList({ initialPatients, pagination, search: initialSearch }: MedicalRecordsListProps) {
   const router = useRouter()
+  const [patients, setPatients] = useState(initialPatients)
   const [search, setSearch] = useState(initialSearch || '')
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    router.push(`/medical-records?search=${encodeURIComponent(search)}`)
-  }
-
-  function calculateAge(dateOfBirth: string) {
-    const today = new Date()
-    const birth = new Date(dateOfBirth)
-    let age = today.getFullYear() - birth.getFullYear()
-    const monthDiff = today.getMonth() - birth.getMonth()
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--
-    }
-    return age
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    router.push(`/medical-records?${params.toString()}`)
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Medical Records</h1>
+          <h1 className="text-3xl font-bold">Rekam Medis</h1>
           <p className="text-muted-foreground">
-            Select a patient to view or add medical records
+            Semua pasien terdaftar
           </p>
         </div>
       </div>
@@ -78,13 +59,13 @@ export function MedicalRecordsList({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search patients by name or phone..."
+            placeholder="Cari nama, No. RM..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
-        <Button type="submit">Search</Button>
+        <Button type="submit">Cari</Button>
       </form>
 
       <Card>
@@ -92,63 +73,55 @@ export function MedicalRecordsList({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
                 <TableHead>No. RM</TableHead>
-                <TableHead>Age</TableHead>
-                <TableHead>Gender</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Records</TableHead>
-                <TableHead>Examined Today</TableHead>
-                <TableHead>Action</TableHead>
+                <TableHead>Nama</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Jml Kunjungan</TableHead>
+                <TableHead>Kunjungan Terakhir</TableHead>
+                <TableHead>Diagnosis Terakhir</TableHead>
+                <TableHead>Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {initialPatients.length === 0 ? (
+              {patients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    No patients found
+                  <TableCell colSpan={7} className="text-center py-8">
+                    Tidak ada pasien ditemukan
                   </TableCell>
                 </TableRow>
               ) : (
-                initialPatients.map((patient) => (
-                  <TableRow key={patient.id}>
+                patients.map((patient) => (
+                  <TableRow key={patient.id} className={!patient.isActive ? 'opacity-60' : ''}>
+                    <TableCell className="font-mono font-medium">{patient.medicalRecordNumber}</TableCell>
                     <TableCell className="font-medium">
                       {patient.name}
-                    </TableCell>
-                    <TableCell className="font-mono text-muted-foreground">
-                      {patient.medicalRecordNumber}
-                    </TableCell>
-                    <TableCell>
-                      {calculateAge(patient.dateOfBirth)} years
+                      {!patient.isActive && (
+                        <Badge variant="destructive" className="ml-2 text-xs">Dihapus</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          patient.gender === 'MALE' ? 'default' : 'secondary'
-                        }
-                      >
-                        {patient.gender}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{patient.phone || '-'}</TableCell>
-                    <TableCell>{patient._count.medicalRecords}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          patient.examinedToday
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }
-                      >
-                        {patient.examinedToday ? 'Diperiksa' : 'Belum'}
+                      <Badge variant={patient.isActive ? 'default' : 'secondary'}>
+                        {patient.isActive ? 'Aktif' : 'Nonaktif'}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Link href={`/medical-records/${patient.id}`}>
-                        <Button variant="ghost" size="sm">
-                          <FileText className="mr-1 h-4 w-4" />
-                          View Records
-                        </Button>
+                      <Badge variant="outline">{patient._count.medicalRecords}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {patient.lastVisit
+                        ? format(new Date(patient.lastVisit.visitDate), 'dd MMM yyyy')
+                        : '-'}
+                    </TableCell>
+                    <TableCell className="text-sm max-w-[200px] truncate">
+                      {patient.lastVisit?.assessment || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/patients/${patient.id}?tab=history`}
+                        className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                      >
+                        <FileText className="mr-1 h-4 w-4" />
+                        Lihat
                       </Link>
                     </TableCell>
                   </TableRow>
@@ -162,33 +135,21 @@ export function MedicalRecordsList({
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Page {pagination.page} of {pagination.totalPages}
+            Halaman {pagination.page} dari {pagination.totalPages}
           </p>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                router.push(
-                  `/medical-records?page=${pagination.page - 1}&search=${search}`
-                )
-              }
-              disabled={pagination.page <= 1}
+            <Link
+              href={`/medical-records?${(() => { const p = new URLSearchParams(); if (search) p.set('search', search); p.set('page', String(pagination.page - 1)); return p.toString(); })()}`}
+              className={`${buttonVariants({ variant: "outline", size: "sm" })} ${pagination.page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
             >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                router.push(
-                  `/medical-records?page=${pagination.page + 1}&search=${search}`
-                )
-              }
-              disabled={pagination.page >= pagination.totalPages}
+              Sebelumnya
+            </Link>
+            <Link
+              href={`/medical-records?${(() => { const p = new URLSearchParams(); if (search) p.set('search', search); p.set('page', String(pagination.page + 1)); return p.toString(); })()}`}
+              className={`${buttonVariants({ variant: "outline", size: "sm" })} ${pagination.page >= pagination.totalPages ? 'pointer-events-none opacity-50' : ''}`}
             >
-              Next
-            </Button>
+              Selanjutnya
+            </Link>
           </div>
         </div>
       )}

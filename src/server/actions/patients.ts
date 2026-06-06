@@ -25,33 +25,41 @@ export async function createPatient(input: PatientInput) {
     return { error: 'Unauthorized' }
   }
 
-  const validated = patientSchema.parse(input)
-  const medicalRecordNumber = validated.medicalRecordNumber || await generateUniqueRecordNumber()
+  try {
+    const validated = patientSchema.parse(input)
+    const medicalRecordNumber = validated.medicalRecordNumber || await generateUniqueRecordNumber()
 
-  const patient = await prisma.patient.create({
-    data: {
-      medicalRecordNumber,
-      name: validated.name,
-      dateOfBirth: validated.dateOfBirth,
-      gender: validated.gender,
-      suku: validated.suku,
-      phone: validated.phone,
-      address: validated.address,
-      allergies: validated.allergies,
-      createdById: session.user.id,
-    },
-  })
+    const patient = await prisma.patient.create({
+      data: {
+        medicalRecordNumber,
+        name: validated.name,
+        dateOfBirth: validated.dateOfBirth,
+        gender: validated.gender,
+        suku: validated.suku,
+        phone: validated.phone,
+        address: validated.address,
+        emergencyContactName: validated.emergencyContactName,
+        emergencyContactPhone: validated.emergencyContactPhone,
+        emergencyContactRelation: validated.emergencyContactRelation,
+        allergies: validated.allergies,
+        createdById: session.user.id,
+      },
+    })
 
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'CREATE',
-    entity: 'Patient',
-    entityId: patient.id,
-    newValues: patient as unknown as Record<string, unknown>,
-  })
+    await createAuditLog({
+      userId: session.user.id,
+      action: 'CREATE',
+      entity: 'Patient',
+      entityId: patient.id,
+      newValues: patient as unknown as Record<string, unknown>,
+    })
 
-  revalidatePath('/patients')
-  return { data: patient }
+    revalidatePath('/patients')
+    return { data: patient }
+  } catch (e) {
+    console.error('createPatient error:', e)
+    return { error: e instanceof Error ? e.message : 'Failed to create patient' }
+  }
 }
 
 export async function getPatients(params?: {
@@ -88,6 +96,7 @@ export async function getPatients(params?: {
     : {}
 
   const where = {
+    isActive: true,
     ...searchFilter,
     ...dateFilter,
   }
@@ -140,37 +149,42 @@ export async function getPatientById(id: string) {
     return { error: 'Unauthorized' }
   }
 
-  const patient = await prisma.patient.findUnique({
-    where: { id },
-    include: {
-      createdBy: { select: { id: true, name: true } },
-      medicalRecords: {
-        orderBy: { visitDate: 'desc' },
-        include: {
-          doctor: { select: { id: true, name: true } },
-          prescription: {
-            include: {
-              items: { include: { medicine: true } },
+  try {
+    const patient = await prisma.patient.findUnique({
+      where: { id },
+      include: {
+        createdBy: { select: { id: true, name: true } },
+        medicalRecords: {
+          orderBy: { visitDate: 'desc' },
+          include: {
+            doctor: { select: { id: true, name: true } },
+            prescription: {
+              include: {
+                items: { include: { medicine: true } },
+              },
             },
           },
         },
-      },
-      prescriptions: {
-        orderBy: { createdAt: 'desc' },
-        include: {
-          items: { include: { medicine: true } },
-          createdBy: { select: { id: true, name: true } },
-          processedBy: { select: { id: true, name: true } },
+        prescriptions: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            items: { include: { medicine: true } },
+            createdBy: { select: { id: true, name: true } },
+            processedBy: { select: { id: true, name: true } },
+          },
         },
       },
-    },
-  })
+    })
 
-  if (!patient) {
-    return { error: 'Patient not found' }
+    if (!patient) {
+      return { error: 'Patient not found' }
+    }
+
+    return { data: patient }
+  } catch (e) {
+    console.error('getPatientById error:', e)
+    return { error: e instanceof Error ? e.message : 'Failed to load patient' }
   }
-
-  return { data: patient }
 }
 
 export async function updatePatient(id: string, input: PatientInput) {
@@ -224,7 +238,7 @@ export async function deletePatient(id: string) {
     return { error: 'Patient not found' }
   }
 
-  await prisma.patient.delete({ where: { id } })
+  await prisma.patient.update({ where: { id }, data: { isActive: false } })
 
   await createAuditLog({
     userId: session.user.id,
@@ -267,6 +281,9 @@ export async function searchPatients(query: string) {
       suku: true,
       phone: true,
       address: true,
+      emergencyContactName: true,
+      emergencyContactPhone: true,
+      emergencyContactRelation: true,
       allergies: true,
     },
   })

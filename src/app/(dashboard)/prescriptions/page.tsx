@@ -23,6 +23,7 @@ export default async function PrescriptionsPage({
 
   return (
     <PrescriptionList
+      key={`${status}-${page}`}
       initialPrescriptions={result.data as any}
       pagination={result.pagination!}
       status={status}

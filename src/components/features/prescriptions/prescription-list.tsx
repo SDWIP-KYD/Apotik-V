@@ -4,13 +4,13 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { updatePrescriptionStatus } from '@/server/actions/prescriptions'
-import { Eye, Check, X, Clock, Loader2 } from 'lucide-react'
+import { Eye, Check, X, Clock, Loader2, RotateCcw } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,7 +60,7 @@ export function PrescriptionList({
   const [prescriptions, setPrescriptions] = useState(initialPrescriptions)
   const [statusFilter, setStatusFilter] = useState(initialStatus || '')
   const [actionId, setActionId] = useState<string | null>(null)
-  const [actionType, setActionType] = useState<'complete' | 'cancel' | null>(null)
+  const [actionType, setActionType] = useState<'complete' | 'cancel' | 'revert' | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
   const isDoctor = session?.user?.role === 'DOCTOR'
@@ -85,7 +85,11 @@ export function PrescriptionList({
 
     setIsProcessing(true)
     try {
-      const newStatus = actionType === 'complete' ? 'COMPLETED' : 'CANCELLED'
+      let newStatus: string
+      if (actionType === 'complete') newStatus = 'COMPLETED'
+      else if (actionType === 'revert') newStatus = 'PENDING'
+      else newStatus = 'CANCELLED'
+
       const result = await updatePrescriptionStatus(actionId, newStatus as any)
 
       if (result.error) {
@@ -93,7 +97,7 @@ export function PrescriptionList({
         return
       }
 
-      toast.success(`Prescription ${actionType === 'complete' ? 'completed' : 'cancelled'}`)
+      toast.success(`Prescription ${newStatus.toLowerCase()}`)
       setPrescriptions(
         prescriptions.map((p) =>
           p.id === actionId ? { ...p, status: newStatus } : p
@@ -227,7 +231,7 @@ export function PrescriptionList({
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {prescription.status === 'PENDING' && (
+                        {(prescription.status === 'PENDING' || prescription.status === 'PROCESSED') && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -239,8 +243,21 @@ export function PrescriptionList({
                             <Check className="h-4 w-4 text-green-600" />
                           </Button>
                         )}
+                        {prescription.status === 'COMPLETED' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setActionId(prescription.id)
+                              setActionType('revert')
+                            }}
+                          >
+                            <RotateCcw className="h-4 w-4 text-orange-600" />
+                          </Button>
+                        )}
                         {(prescription.status === 'PENDING' ||
-                          prescription.status === 'PROCESSED') &&
+                          prescription.status === 'PROCESSED' ||
+                          prescription.status === 'COMPLETED') &&
                           isDoctor && (
                             <Button
                               variant="ghost"
@@ -269,32 +286,18 @@ export function PrescriptionList({
             Page {pagination.page} of {pagination.totalPages}
           </p>
       <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const params = new URLSearchParams()
-                if (statusFilter) params.set('status', statusFilter)
-                params.set('page', String(pagination.page - 1))
-                router.push(`/prescriptions?${params.toString()}`)
-              }}
-              disabled={pagination.page <= 1}
+            <Link
+              href={`/prescriptions?${(() => { const p = new URLSearchParams(); if (statusFilter) p.set('status', statusFilter); p.set('page', String(pagination.page - 1)); return p.toString(); })()}`}
+              className={`${buttonVariants({ variant: "outline", size: "sm" })} ${pagination.page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
             >
               Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const params = new URLSearchParams()
-                if (statusFilter) params.set('status', statusFilter)
-                params.set('page', String(pagination.page + 1))
-                router.push(`/prescriptions?${params.toString()}`)
-              }}
-              disabled={pagination.page >= pagination.totalPages}
+            </Link>
+            <Link
+              href={`/prescriptions?${(() => { const p = new URLSearchParams(); if (statusFilter) p.set('status', statusFilter); p.set('page', String(pagination.page + 1)); return p.toString(); })()}`}
+              className={`${buttonVariants({ variant: "outline", size: "sm" })} ${pagination.page >= pagination.totalPages ? 'pointer-events-none opacity-50' : ''}`}
             >
               Next
-            </Button>
+            </Link>
           </div>
         </div>
       )}
@@ -304,11 +307,13 @@ export function PrescriptionList({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {actionType === 'complete' ? 'Complete Prescription' : 'Cancel Prescription'}
+              {actionType === 'complete' ? 'Complete Prescription' : actionType === 'revert' ? 'Revert to Pending' : 'Cancel Prescription'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {actionType === 'complete'
                 ? 'This will deduct stock from inventory. Are you sure?'
+                : actionType === 'revert'
+                ? 'This will restore stock to inventory. Are you sure?'
                 : 'This action cannot be undone. Are you sure?'}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -317,9 +322,9 @@ export function PrescriptionList({
             <AlertDialogAction
               onClick={handleAction}
               disabled={isProcessing}
-              className={actionType === 'cancel' ? 'bg-red-600 hover:bg-red-700' : ''}
+              className={actionType === 'cancel' ? 'bg-red-600 hover:bg-red-700' : actionType === 'revert' ? 'bg-orange-600 hover:bg-orange-700' : ''}
             >
-              {isProcessing ? 'Processing...' : actionType === 'complete' ? 'Complete' : 'Cancel Prescription'}
+              {isProcessing ? 'Processing...' : actionType === 'complete' ? 'Complete' : actionType === 'revert' ? 'Revert' : 'Cancel Prescription'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

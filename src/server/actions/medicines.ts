@@ -12,22 +12,26 @@ export async function createMedicine(input: MedicineInput) {
     return { error: 'Unauthorized' }
   }
 
-  const validated = medicineSchema.parse(input)
+  try {
+    const validated = medicineSchema.parse(input)
 
-  const medicine = await prisma.medicine.create({
-    data: validated,
-  })
+    const medicine = await prisma.medicine.create({
+      data: validated,
+    })
 
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'CREATE',
-    entity: 'Medicine',
-    entityId: medicine.id,
-    newValues: medicine as unknown as Record<string, unknown>,
-  })
+    await createAuditLog({
+      userId: session.user.id,
+      action: 'CREATE',
+      entity: 'Medicine',
+      entityId: medicine.id,
+      newValues: medicine as unknown as Record<string, unknown>,
+    })
 
-  revalidatePath('/inventory')
-  return { data: medicine }
+    revalidatePath('/inventory')
+    return { data: medicine }
+  } catch (e: any) {
+    return { error: e.message || 'Failed to create medicine' }
+  }
 }
 
 export async function getMedicines(params?: {

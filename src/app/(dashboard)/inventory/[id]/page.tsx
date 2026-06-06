@@ -32,7 +32,6 @@ export default async function MedicineDetailPage({
             stockQty: medicine.stockQty,
             minThreshold: medicine.minThreshold,
             expiryDate: medicine.expiryDate,
-            batchNumber: medicine.batchNumber,
             price: medicine.price,
           }}
           mode="edit"

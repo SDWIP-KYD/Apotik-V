@@ -14,6 +14,9 @@ export const patientSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   allergies: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+  emergencyContactRelation: z.string().optional(),
 })
 
 export const medicalRecordSchema = z.object({
@@ -31,7 +34,6 @@ export const medicineSchema = z.object({
   stockQty: z.coerce.number().int().min(0, 'Stock must be positive'),
   minThreshold: z.coerce.number().int().min(0).default(10),
   expiryDate: z.coerce.date({ message: 'Invalid date' }),
-  batchNumber: z.string().min(1, 'Batch number is required'),
   price: z.coerce.number().min(0, 'Price must be positive'),
 })
 
@@ -48,9 +50,22 @@ export const adjustStockSchema = z.object({
   reason: z.string().min(1, 'Reason is required'),
 })
 
+export const vitalSignsSchema = z.object({
+  bloodPressureSystolic: z.coerce.number().int().min(60).max(300).optional().nullable(),
+  bloodPressureDiastolic: z.coerce.number().int().min(30).max(200).optional().nullable(),
+  temperature: z.coerce.number().min(30).max(45).optional().nullable(),
+  respiratoryRate: z.coerce.number().int().min(5).max(60).optional().nullable(),
+  heartRate: z.coerce.number().int().min(30).max(300).optional().nullable(),
+  spo2: z.coerce.number().int().min(0).max(100).optional().nullable(),
+  weight: z.coerce.number().min(0).max(500).optional().nullable(),
+  height: z.coerce.number().min(0).max(300).optional().nullable(),
+  diagnosisCode: z.string().max(20).optional().nullable(),
+})
+
 export type LoginInput = z.infer<typeof loginSchema>
 export type PatientInput = z.infer<typeof patientSchema>
 export type MedicalRecordInput = z.infer<typeof medicalRecordSchema>
 export type MedicineInput = z.infer<typeof medicineSchema>
 export type PrescriptionItemInput = z.infer<typeof prescriptionItemSchema>
 export type AdjustStockInput = z.infer<typeof adjustStockSchema>
+export type VitalSignsInput = z.infer<typeof vitalSignsSchema>
