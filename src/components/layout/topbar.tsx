@@ -43,14 +43,12 @@ export function Topbar() {
       </div>
 
       <DropdownMenu>
-        <DropdownMenuTrigger>
-          <Button variant="ghost" className="relative h-9 w-9 rounded-full bg-white/60 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:bg-white/80">
+        <DropdownMenuTrigger className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/60 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:bg-white/80 outline-none">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-[#1D3557] text-white text-xs font-bold">{initials}</AvatarFallback>
             </Avatar>
-          </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 glass-card rounded-xl" align="end">
+        <DropdownMenuContent className="w-56 rounded-xl" align="end" style={{ backgroundColor: '#ffffff', border: '1px solid rgba(29,53,87,0.12)' }}>
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-bold text-[#1D3557] leading-none">
