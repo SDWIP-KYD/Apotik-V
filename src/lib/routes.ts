@@ -8,6 +8,7 @@ export const protectedRoutes = [
   '/medical-records',
   '/inventory',
   '/prescriptions',
+  '/profile',
 ]
 
 export const doctorOnlyRoutes = ['/audit-logs']

@@ -1,7 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { signOut } from 'next-auth/react'
 import { LogOut, User } from 'lucide-react'
+import Link from 'next/link'
 
 export function Topbar() {
   const { data: session } = useSession()
@@ -46,6 +47,7 @@ export function Topbar() {
       <DropdownMenu>
         <DropdownMenuTrigger className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/60 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:bg-white/80 outline-none">
             <Avatar className="h-8 w-8">
+              {session?.user?.image && <AvatarImage src={session.user.image} alt={session.user.name} />}
               <AvatarFallback className="bg-[#1D3557] text-white text-xs font-bold">{initials}</AvatarFallback>
             </Avatar>
         </DropdownMenuTrigger>
@@ -66,7 +68,7 @@ export function Topbar() {
             </DropdownMenuLabel>
           </DropdownMenuGroup>
           <DropdownMenuSeparator className="bg-white/40" />
-          <DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/profile" />}>
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>

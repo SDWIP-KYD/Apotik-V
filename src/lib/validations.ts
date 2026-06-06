@@ -50,6 +50,20 @@ export const adjustStockSchema = z.object({
   reason: z.string().min(1, 'Reason is required'),
 })
 
+export const profileSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+})
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string().min(1, 'Please confirm your password'),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+})
+
 export const vitalSignsSchema = z.object({
   bloodPressureSystolic: z.coerce.number().int().min(60).max(300).optional().nullable(),
   bloodPressureDiastolic: z.coerce.number().int().min(30).max(200).optional().nullable(),
@@ -69,3 +83,5 @@ export type MedicineInput = z.infer<typeof medicineSchema>
 export type PrescriptionItemInput = z.infer<typeof prescriptionItemSchema>
 export type AdjustStockInput = z.infer<typeof adjustStockSchema>
 export type VitalSignsInput = z.infer<typeof vitalSignsSchema>
+export type ProfileInput = z.infer<typeof profileSchema>
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>

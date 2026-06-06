@@ -25,6 +25,7 @@ model User {
   email         String    @unique
   password      String
   role          Role      @default(STAFF)
+  image         String?   @db.Text
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
