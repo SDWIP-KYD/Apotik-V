@@ -510,9 +510,9 @@ export function PatientDetail({ patient }: PatientDetailProps) {
 
       {/* New Visit Form */}
       {activeTab === 'new' && (
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3 overflow-visible">
           {/* SOAP Form */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-4 overflow-visible">
             <Card>
               <CardHeader>
                 <CardTitle>Subjective (S)</CardTitle>
@@ -546,7 +546,7 @@ export function PatientDetail({ patient }: PatientDetailProps) {
             </Card>
 
             {/* Vital Signs */}
-            <Card>
+            <Card className="overflow-visible">
               <CardHeader>
                 <CardTitle>Tanda Vital</CardTitle>
                 <CardDescription>Pengukuran klinis terstruktur</CardDescription>
@@ -632,8 +632,8 @@ export function PatientDetail({ patient }: PatientDetailProps) {
           </div>
 
           {/* Prescription Panel */}
-          <div className="space-y-4">
-            <Card>
+          <div className="space-y-4 overflow-visible">
+            <Card className="overflow-visible">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Prescription</CardTitle>
@@ -644,7 +644,7 @@ export function PatientDetail({ patient }: PatientDetailProps) {
                 </div>
                 <CardDescription>Select medicines from inventory</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 overflow-visible">
                 {prescriptionItems.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
                     No medicines added yet
@@ -772,7 +772,7 @@ export function PatientDetail({ patient }: PatientDetailProps) {
             </Card>
           ) : (
             filteredRecords.map((record) => (
-              <Card key={record.id}>
+              <Card key={record.id} className="overflow-visible">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">
